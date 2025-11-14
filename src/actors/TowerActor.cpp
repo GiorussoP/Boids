@@ -12,3 +12,9 @@ TowerActor::TowerActor(Scene *scene) : Actor(scene) {
   SetScale(Vector3(2.0f, 30.0f, 2.0f));
   SetPosition(Vector3(5.0f, 15.0f, 0.0f));
 }
+
+void TowerActor::OnUpdate(float deltaTime) {
+  // Rotate tower slowly
+  Quaternion rot(Vector3::UnitY, Math::ToRadians(15.0f) * deltaTime);
+  SetRotation(Quaternion::Concatenate(GetRotation(), rot));
+}

@@ -9,7 +9,8 @@
 
 Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
-      mMeshShader(nullptr) {}
+      mMeshShader(nullptr),
+      lightDir(Vector3::Normalize(Vector3(-1.0f, -1.0f, -1.0f))) {}
 
 Renderer::~Renderer() {
 
@@ -163,12 +164,6 @@ void Renderer::DrawMeshesInstanced(const std::vector<MeshComponent *> &meshes,
     // Upload instance data
     group.mesh->UpdateInstanceBuffer(instanceData, group.components.size());
 
-    // Set view-projection matrix uniform (same for all instances)
-    Matrix4 viewProj = mViewMatrix * mProjectionMatrix;
-    mMeshShader->SetMatrixUniform("uViewProjection", viewProj);
-
-    // Bind texture atlas
-
     // Activate mesh VAO
     group.mesh->SetActive();
 
@@ -253,10 +248,13 @@ void Renderer::ActivateMeshShader() {
   // Activate mesh shader program
   mMeshShader->SetActive();
 
-  // Set frame-level uniforms (uniforms that don't change per mesh)
-  mMeshShader->SetMatrixUniform("uView", mViewMatrix);
+  // Set view-projection matrix uniform (same for all instances)
+  Matrix4 viewProj = mViewMatrix * mProjectionMatrix;
+  mMeshShader->SetMatrixUniform("uViewProjection", viewProj);
+  mMeshShader->SetVectorUniform("uLightDir", lightDir);
+  mMeshShader->SetVectorUniform("uLightColor", Vector3(1.0f, 1.0f, 1.0f));
+  mMeshShader->SetVectorUniform("uAmbientColor", Vector3(0.2f, 0.2f, 0.2f));
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
-  mMeshShader->SetIntegerUniform("uBloomPass", 0); // Default: not bloom pass
 }
 
 void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,

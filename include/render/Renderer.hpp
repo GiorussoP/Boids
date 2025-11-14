@@ -53,4 +53,6 @@ private:
 
   // Meshes
   std::unordered_map<std::string, Mesh *> mMeshCache;
+
+  Vector3 lightDir;
 };

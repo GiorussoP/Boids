@@ -21,10 +21,9 @@ const float MIDI_UPDATE_INTERVAL = 0.001f; // Update MIDI every 1ms
 Scene::Scene()
     : mUpdatingActors(false), mWindow(nullptr), mGLContext(nullptr),
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
-      mCameraForward(0.0f, -1.0f, 0.0f) // Looking toward negative Y
-      ,
-      mCameraUp(0.0f, 1.0f, 0.0f), mTicksCount(0), mIsRunning(true),
-      mIsDebugging(false), mCameraController(nullptr) {}
+      mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
+      mTicksCount(0), mIsRunning(true), mIsDebugging(false),
+      mCameraController(nullptr) {}
 
 bool Scene::Initialize() {
   // Initialize SDL
@@ -85,7 +84,7 @@ bool Scene::Initialize() {
   }
 
   // Set initial projection matrix
-  float fov = Math::ToRadians(60.0f);
+  float fov = Math::ToRadians(90.0f);
   Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
       fov, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
       0.1f, 200.0f);
@@ -207,7 +206,7 @@ void Scene::ProcessInput() {
         // Handle window resize
         glViewport(0, 0, event.window.data1, event.window.data2);
 
-        float fov = Math::ToRadians(60.0f);
+        float fov = Math::ToRadians(90.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
             fov, static_cast<float>(event.window.data1),
             static_cast<float>(event.window.data2), 0.1f, 200.0f);

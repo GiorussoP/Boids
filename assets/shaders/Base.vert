@@ -16,12 +16,15 @@ uniform vec3 uCameraPos;
 
 flat out vec3 fragNormal;
 out vec3 fragColor;
+out vec3 fragPosition;
 
 void main()
 {
     // Transform position by instance model then view-projection
     gl_Position = uViewProjection * inInstanceModel * vec4(inPosition, 1.0);
     
+
+    fragPosition = vec3(inInstanceModel * vec4(inPosition, 1.0));
     // Transform normal to world space using instance normal matrix
     fragNormal = mat3(inInstanceNormal) * inNormal;
     

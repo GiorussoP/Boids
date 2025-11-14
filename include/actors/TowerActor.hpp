@@ -9,6 +9,7 @@ class TowerActor : public Actor {
 public:
   TowerActor(class Scene *scene);
   ~TowerActor() {};
+  void OnUpdate(float deltaTime) override;
 
 private:
   MeshComponent *mMeshComponent;
