@@ -3,8 +3,8 @@
 #include "render/Mesh.hpp"
 
 MeshComponent::MeshComponent(Actor *owner, Mesh &mesh, Vector3 offset,
-                             Quaternion rotation, Vector3 color)
-    : Component(owner), mMesh(mesh), mOffset(offset), mRotation(rotation),
-      mColor(color), mIsVisible(true) {}
+                             Vector3 scale, Quaternion rotation, Vector3 color)
+    : Component(owner), mMesh(mesh), mOffset(offset), mScale(scale),
+      mRotation(rotation), mColor(color), mIsVisible(true) {}
 
 MeshComponent::~MeshComponent() {}

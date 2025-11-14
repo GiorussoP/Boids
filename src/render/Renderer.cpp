@@ -28,8 +28,8 @@ bool Renderer::Initialize(float width, float height) {
     return false;
   }
 
-  // Set the clear color to blue
-  glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+  // Set the clear color to sky blue
+  glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
 
   // Enable depth testing
   glEnable(GL_DEPTH_TEST);
@@ -127,10 +127,12 @@ void Renderer::DrawMeshesInstanced(const std::vector<MeshComponent *> &meshes,
 
     for (auto *meshComp : group.components) {
       Vector3 position =
-          meshComp->GetOwner()->GetPosition() + meshComp->GetOffset();
-      Vector3 size = meshComp->GetOwner()->GetScale();
+          meshComp->GetOwner()->GetPosition() +
+          Vector3::Transform(meshComp->GetOffset(),
+                             meshComp->GetOwner()->GetRotation());
+      Vector3 size = meshComp->GetOwner()->GetScale() * meshComp->GetScale();
       Quaternion rotation = Quaternion::Concatenate(
-          meshComp->GetOwner()->GetRotation(), meshComp->GetRotation());
+          meshComp->GetRotation(), meshComp->GetOwner()->GetRotation());
 
       // Model matrix (just transform, not MVP)
       Matrix4 model = Matrix4::CreateScale(size) *

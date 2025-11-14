@@ -1,6 +1,7 @@
 #include "Scene.hpp"
 
 #include "Input.hpp"
+#include "actors/BirdActor.hpp"
 #include "actors/CameraControllerActor.hpp"
 #include "actors/GroundActor.hpp"
 #include "actors/TowerActor.hpp"
@@ -102,6 +103,10 @@ void Scene::InitializeActors() {
   mCameraController = new CameraControllerActor(this);
 
   new TowerActor(this);
+
+  auto bird = new BirdActor(this);
+
+  bird->SetPosition(Vector3(5.0f, 5.0f, 5.0f));
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
 

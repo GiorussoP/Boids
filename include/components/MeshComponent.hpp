@@ -8,6 +8,7 @@
 class MeshComponent : public Component {
 public:
   MeshComponent(class Actor *owner, Mesh &mesh, Vector3 offset = Vector3::Zero,
+                Vector3 scale = Vector3::One,
                 Quaternion rotation = Quaternion::Identity,
                 Vector3 color = Color::Red);
   ~MeshComponent();
@@ -17,6 +18,9 @@ public:
 
   Vector3 GetOffset() const { return mOffset; }
   void SetOffset(const Vector3 &offset) { mOffset = offset; }
+
+  Vector3 GetScale() const { return mScale; }
+  void SetScale(const Vector3 &scale) { mScale = scale; }
 
   Quaternion GetRotation() const { return mRotation; }
   void SetRotation(const Quaternion &rotation) { mRotation = rotation; }
@@ -29,6 +33,7 @@ public:
 protected:
   Mesh &mMesh;
   Vector3 mOffset;
+  Vector3 mScale;
   Quaternion mRotation;
   Vector3 mColor;
 
