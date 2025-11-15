@@ -4,6 +4,7 @@
 // Per-vertex attributes
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inTexCoord;
 
 // Per-instance attributes (mat4 takes 4 locations)
 layout(location = 4) in mat4 inInstanceModel;      // Locations 4, 5, 6, 7
@@ -17,6 +18,7 @@ uniform vec3 uCameraPos;
 out vec3 fragNormal;
 out vec3 fragColor;
 out vec3 fragPosition;
+out vec2 fragTexCoord;
 
 void main()
 {
@@ -27,6 +29,8 @@ void main()
     fragPosition = vec3(inInstanceModel * vec4(inPosition, 1.0));
     // Transform normal to world space using instance normal matrix
     fragNormal = mat3(inInstanceNormal) * inNormal;
+
+    fragTexCoord = inTexCoord;
     
     // Pass instance color
     fragColor = inInstanceColor;

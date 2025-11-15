@@ -4,12 +4,21 @@
 #include "components/MeshComponent.hpp"
 #include "render/Mesh.hpp"
 #include "render/Renderer.hpp"
+#include <iostream>
 
 GroundActor::GroundActor(Scene *scene) : Actor(scene) {
-  // Create and attach mesh component
-  Mesh *groundMesh = scene->GetRenderer()->LoadMesh("plane");
+
+  const std::string heightmapPath = "assets/heightmap/heightmap3.png";
+  const float heightScale = 100.0f; // Ajuste esta altura conforme necessário
+  const float horizontalScaleFactor = 1000.0f / 1025.0f;
+  const float offset = 1025.0f * horizontalScaleFactor * 0.5f;
+
+  Mesh *groundMesh =
+      scene->GetRenderer()->CreateHeightmapMesh(heightmapPath, heightScale);
+
   mMeshComponent =
-      new MeshComponent(this, *groundMesh, Vector3(0.0f, 0.0f, 0.0f));
+      new MeshComponent(this, *groundMesh, Vector3(-offset, 0.0f, -offset));
+
   mMeshComponent->SetColor(Color::Green);
-  SetScale(Vector3(1000.0f, 1.0f, 1000.0f));
+  SetScale(Vector3(horizontalScaleFactor, 1.0f, horizontalScaleFactor));
 }

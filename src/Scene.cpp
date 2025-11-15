@@ -89,7 +89,7 @@ bool Scene::Initialize() {
   float fov = Math::ToRadians(90.0f);
   Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
       fov, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
-      0.1f, 200.0f);
+      0.1f, 1000.0f);
   mRenderer->SetProjectionMatrix(perspectiveProjection);
 
   mTicksCount = SDL_GetTicks();
@@ -106,15 +106,16 @@ void Scene::InitializeActors() {
   new TowerActor(this);
 
   mLeader = new BirdActor(this, BirdType::Leader);
-  mLeader->SetPosition(Vector3(20.0f, 15.0f, 0.0f));
+  mLeader->SetPosition(Vector3(20.0f, 50.0f, 0.0f));
   mLeader->GetComponent<RigidBodyComponent>()->SetVelocity(
       Vector3(0.0f, 0.0f, 20.0f));
 
   for (int i = 0; i < 200; i++) {
     BirdActor *bird = new BirdActor(this);
-    bird->SetPosition(Vector3((std::rand() % 20), 0, (std::rand() % 20)));
+    bird->SetPosition(Vector3((std::rand() % 20), 20, (std::rand() % 20)));
     bird->GetComponent<RigidBodyComponent>()->SetVelocity(
-        Vector3(0.0f, 0.0f, 15.0f));
+        Vector3((std::rand() % 41 - 20), (std::rand() % 41 - 20),
+                (std::rand() % 41 - 20)));
   }
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
@@ -223,7 +224,7 @@ void Scene::ProcessInput() {
         float fov = Math::ToRadians(90.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
             fov, static_cast<float>(event.window.data1),
-            static_cast<float>(event.window.data2), 0.1f, 200.0f);
+            static_cast<float>(event.window.data2), 0.1f, 1000.0f);
         mRenderer->SetProjectionMatrix(perspectiveProjection);
       }
       break;

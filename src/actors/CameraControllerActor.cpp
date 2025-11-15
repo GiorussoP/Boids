@@ -87,10 +87,13 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
   case CameraMode::Fixed:
     // Look to flock center
 
-    mScene->SetCameraPos(Vector3(0.0f, 30.0f, 0.0f));
+    mScene->SetCameraPos(Vector3::Lerp(mScene->GetCameraPos(),
+                                       Vector3(0.0f, 50.0f, 0.0f), 0.05f));
     forward =
         Vector3::Normalize(mScene->GetFlockCenter() - mScene->GetCameraPos());
-    mScene->SetCameraRotation(Math::LookRotation(forward, Vector3::UnitY));
+    mScene->SetCameraRotation(
+        Quaternion::Slerp(mScene->GetCameraRotation(),
+                          Math::LookRotation(forward, Vector3::UnitY), 0.05f));
     // mScene->SetCameraForward(forward);
     // mScene->SetCameraUp(Vector3::UnitY);
 

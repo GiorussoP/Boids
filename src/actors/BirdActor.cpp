@@ -2,6 +2,7 @@
 
 #include "Scene.hpp"
 #include "render/Renderer.hpp"
+#include <algorithm>
 
 BirdActor::BirdActor(Scene *scene, BirdType type)
     : Actor(scene), mflapTimer(((float)(std::rand() % 100)) / Math::Pi),
@@ -36,6 +37,8 @@ BirdActor::BirdActor(Scene *scene, BirdType type)
   mTail->SetColor(color);
 
   mRigidBody = new RigidBodyComponent(this, 1.0f, 0.0f);
+
+  mScale = Vector3(0.3f, 0.3f, 0.3f);
 }
 
 void BirdActor::OnUpdate(float deltaTime) {
@@ -61,13 +64,36 @@ void BirdActor::OnUpdate(float deltaTime) {
         20.0f);
 
   } else {
-    // Follow leader bird
     BirdActor *leader = mScene->GetLeader();
-
     Vector3 toLeader = leader->GetPosition() - GetPosition();
-    float distance = toLeader.Length();
     toLeader.Normalize();
-    Vector3 desiredVelocity = toLeader * 25.0f;
+    Vector3 desiredToLeader = toLeader * 25.0f;
+
+    const float neighborRadius = 20.0f;
+    Vector3 avgVelocity = Vector3::Zero;
+    int neighborCount = 0;
+
+    for (auto actor : mScene->GetActors()) {
+      BirdActor *otherBird = dynamic_cast<BirdActor *>(actor);
+      if (otherBird != nullptr && otherBird != this) {
+        Vector3 toOther = otherBird->GetPosition() - GetPosition();
+        float distSq = toOther.LengthSq();
+        if (distSq < neighborRadius * neighborRadius) {
+          avgVelocity +=
+              otherBird->GetComponent<RigidBodyComponent>()->GetVelocity();
+          neighborCount++;
+        }
+      }
+    }
+
+    Vector3 desiredVelocity;
+    if (neighborCount > 0) {
+      avgVelocity = avgVelocity * (1.0f / (float)neighborCount);
+      desiredVelocity = (desiredToLeader + avgVelocity) * 0.5f;
+    } else {
+      desiredVelocity = desiredToLeader;
+    }
+
     Vector3 steering = desiredVelocity - mRigidBody->GetVelocity();
     mRigidBody->ApplyForce(steering);
 
@@ -77,7 +103,7 @@ void BirdActor::OnUpdate(float deltaTime) {
       if (otherBird != nullptr && otherBird != this) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
-        if (distSq < 15.0f) {
+        if (distSq < 10.0f) {
           toOther.Normalize();
           mRigidBody->ApplyForce(-1.0f * toOther * 50.0f);
         }
@@ -86,7 +112,7 @@ void BirdActor::OnUpdate(float deltaTime) {
   }
 
   // Rotation
-  Vector3 velocity = mRigidBody->GetVelocity() * 100.0f;
+  Vector3 velocity = mRigidBody->GetVelocity();
   if (velocity.LengthSq() > 0.0f) {
     velocity.Normalize();
     float pitch = Math::ASin(-velocity.y);
