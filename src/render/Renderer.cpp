@@ -4,8 +4,10 @@
 #include "MeshComponent.hpp"
 #include "Shader.hpp"
 #include <GL/glew.h>
+#include <SDL2/SDL_image.h>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 
 Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
@@ -329,4 +331,107 @@ void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,
 
   // Re-enable depth test
   glEnable(GL_DEPTH_TEST);
+}
+
+Mesh* Renderer::CreateHeightmapMesh(const std::string& path,
+                                    float heightScale)
+{
+  SDL_Surface* img = IMG_Load(path.c_str());
+
+  const int W = img->w;
+  const int H = img->h;
+  const int BPP = img->format->BytesPerPixel;
+  const int pitch = img->pitch;
+  uint8_t* pix = (uint8_t*)img->pixels;
+
+  std::vector<Vertex> vertices;
+  vertices.reserve(W * H);
+  
+  //heightmaps de 8 ou 16 bits
+  for (int y = 0; y < H; y++) {
+  uint8_t* row_start = &pix[y * pitch];
+    for (int x = 0; x < W; x++) {
+      
+        uint8_t* p = &row_start[x * BPP];
+        uint16_t hval_16bit;
+        float height_divisor;
+
+        if (BPP >= 2) {
+            memcpy(&hval_16bit, p, 2); 
+            height_divisor = 65535.0f;
+        } else {
+            hval_16bit = *p; 
+            height_divisor = 255.0f;
+        }
+
+        float hn = float(hval_16bit) / height_divisor;
+        float Y  = hn * heightScale;
+
+        Vertex v;
+        v.position = Vector3(float(x), Y, float(y));
+        v.normal = Vector3(0, 1, 0);
+        v.texture = Vector2(float(x) / (W - 1), float(y) / (H - 1));
+
+        vertices.push_back(v);
+    }
+}
+
+// normais pro blinn phong
+for (int y = 0; y < H - 1; y++) {
+    for (int x = 0; x < W - 1; x++) {
+
+        int i0 = y * W + x;
+        int i1 = i0 + 1;
+        int i2 = (y + 1) * W + x;
+        int i3 = i2 + 1;
+
+        // Normais para o Triângulo 1 (i0, i1, i2)
+        Vector3 v01 = vertices[i1].position - vertices[i0].position;
+        Vector3 v02 = vertices[i2].position - vertices[i0].position;
+        Vector3 normal1 = Vector3::Normalize(Vector3::Cross(v01, v02));
+
+        // Normais para o Triângulo 2 (i1, i3, i2)
+        Vector3 v13 = vertices[i3].position - vertices[i1].position;
+        Vector3 v12 = vertices[i2].position - vertices[i1].position;
+        Vector3 normal2 = Vector3::Normalize(Vector3::Cross(v13, v12));
+
+        vertices[i0].normal += normal1;
+        vertices[i1].normal += normal1 + normal2;
+        vertices[i2].normal += normal1 + normal2;
+        vertices[i3].normal += normal2;
+    }
+}
+
+for (Vertex& v : vertices) {
+    v.normal.Normalize(); 
+}
+
+// Geração dos Triângulos
+std::vector<Triangle> triangles;
+triangles.reserve((W - 1) * (H - 1) * 2); 
+
+for (int y = 0; y < H - 1; y++) {
+    for (int x = 0; x < W - 1; x++) {
+
+        int i0 = y * W + x;
+        int i1 = i0 + 1;
+        int i2 = (y + 1) * W + x;
+        int i3 = i2 + 1;
+
+        triangles.push_back({ (unsigned int)i0, (unsigned int)i1, (unsigned int)i2 });
+
+        triangles.push_back({ (unsigned int)i1, (unsigned int)i3, (unsigned int)i2 });
+    }
+}
+
+SDL_FreeSurface(img);
+
+Mesh* mesh = new Mesh();
+
+MeshData data;
+data.vertices = std::move(vertices);
+data.triangles = std::move(triangles);
+mesh->Build(data);
+
+return mesh;
 }

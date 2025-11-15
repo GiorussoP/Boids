@@ -11,9 +11,15 @@
 struct Vertex {
   Vector3 position;
   Vector3 normal;
+  Vector2 texture;
 
+  Vertex() = default;
+  
   Vertex(const Vector3 &pos, const Vector3 &norm)
       : position(pos), normal(norm) {}
+
+  Vertex(const Vector3 &pos, const Vector3 &norm, const Vector2 &texture)
+        : position(pos), normal(norm), texture(texture) {}
 };
 
 // Triangle

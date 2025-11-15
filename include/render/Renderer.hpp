@@ -21,6 +21,10 @@ public:
   // Mesh management
   Mesh *LoadMesh(const std::string &meshName);
 
+  Mesh* CreateHeightmapMesh(const std::string& path,
+                          float heightScale);
+
+
   // Instanced drawing - draw multiple instances of the same mesh
   void DrawMeshesInstanced(const std::vector<MeshComponent *> &meshes,
                            RendererMode mode);
