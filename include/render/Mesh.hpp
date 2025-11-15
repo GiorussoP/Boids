@@ -119,4 +119,14 @@ private:
   static MeshData GenerateIcosahedronData();
 };
 
+// Cone mesh class
+class ConeMesh : public Mesh {
+public:
+  ConeMesh();
+  virtual ~ConeMesh() = default;
+
+private:
+  static MeshData GenerateConeData();
+};
+
 #endif // MESH_HPP

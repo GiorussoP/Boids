@@ -23,8 +23,9 @@ Scene::Scene()
     : mUpdatingActors(false), mWindow(nullptr), mGLContext(nullptr),
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
       mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
+      mCameraMode(CameraMode::Free), mFlockCenter(Vector3::Zero),
       mTicksCount(0), mIsRunning(true), mIsDebugging(false),
-      mCameraController(nullptr) {}
+      mCameraController(nullptr), mLeader(nullptr) {}
 
 bool Scene::Initialize() {
   // Initialize SDL
@@ -104,9 +105,17 @@ void Scene::InitializeActors() {
 
   new TowerActor(this);
 
-  auto bird = new BirdActor(this);
+  mLeader = new BirdActor(this, BirdType::Leader);
+  mLeader->SetPosition(Vector3(20.0f, 15.0f, 0.0f));
+  mLeader->GetComponent<RigidBodyComponent>()->SetVelocity(
+      Vector3(0.0f, 0.0f, 20.0f));
 
-  bird->SetPosition(Vector3(5.0f, 5.0f, 5.0f));
+  for (int i = 0; i < 200; i++) {
+    BirdActor *bird = new BirdActor(this);
+    bird->SetPosition(Vector3((std::rand() % 20), 0, (std::rand() % 20)));
+    bird->GetComponent<RigidBodyComponent>()->SetVelocity(
+        Vector3(0.0f, 0.0f, 15.0f));
+  }
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
 
@@ -223,6 +232,12 @@ void Scene::ProcessInput() {
 
   Input::Update();
 
+  if (Input::WasKeyPressed(SDL_SCANCODE_C)) {
+    // Cycle through camera modes
+    mCameraMode =
+        static_cast<CameraMode>((static_cast<int>(mCameraMode) + 1) % 4);
+  }
+
   if (Input::WasKeyPressed(SDL_SCANCODE_ESCAPE)) {
     mIsRunning = false;
   }
@@ -254,14 +269,22 @@ void Scene::ProcessInput() {
 void Scene::UpdateActors(float deltaTime) {
   mUpdatingActors = true;
 
-  // Get visible actors from chunk grid
-  // std::vector<Actor*> mActiveActors =
-  // mChunkGrid->GetVisibleActors(mCameraPos);
+  Vector3 flockCenter = Vector3::Zero;
+  int birdCount = 0;
 
   // Update all active actors
   for (auto actor : mActors) {
     actor->Update(deltaTime);
+    if (actor->GetState() == ActorState::Active) {
+      if (auto bird = dynamic_cast<BirdActor *>(actor)) {
+        flockCenter += bird->GetPosition();
+        birdCount++;
+      }
+    }
   }
+  if (birdCount > 0)
+    mFlockCenter = flockCenter * (1.0 / static_cast<float>(birdCount));
+
   mUpdatingActors = false;
 
   // Move pending actors to active and register with chunk grid

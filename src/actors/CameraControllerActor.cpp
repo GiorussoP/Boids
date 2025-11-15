@@ -17,6 +17,9 @@ CameraControllerActor::CameraControllerActor(Scene *scene)
 CameraControllerActor::~CameraControllerActor() {}
 
 void CameraControllerActor::OnProcessInput() {
+  if (mScene->GetCameraMode() != CameraMode::Free) {
+    return;
+  }
   // Look controls with arrow keys
   if (Input::IsKeyDown(SDL_SCANCODE_UP)) {
     mPitch += mLookSpeed * 0.016f; // Approximate deltaTime for input processing
@@ -64,17 +67,56 @@ void CameraControllerActor::OnProcessInput() {
 }
 
 void CameraControllerActor::OnUpdate(float deltaTime) {
-  Scene *scene = GetScene();
+  Vector3 forward, up;
 
-  if (mMoveDir.LengthSq() > 0.0f) {
-    mMoveDir.Normalize();
-    Vector3 newPos = scene->GetCameraPos() + mMoveDir * mMoveSpeed * deltaTime;
-    scene->SetCameraPos(newPos);
+  switch (mScene->GetCameraMode()) {
+  case CameraMode::Free:
+    if (mMoveDir.LengthSq() > 0.0f) {
+      mMoveDir.Normalize();
+      Vector3 newPos =
+          mScene->GetCameraPos() + mMoveDir * mMoveSpeed * deltaTime;
+      mScene->SetCameraPos(newPos);
+    }
+
+    // Update camera forward based on yaw and pitch
+    forward = Vector3(Math::Cos(mPitch) * Math::Cos(mYaw), Math::Sin(mPitch),
+                      Math::Cos(mPitch) * Math::Sin(mYaw));
+    mScene->SetCameraForward(forward);
+    mScene->SetCameraUp(Vector3::UnitY);
+    break;
+  case CameraMode::Fixed:
+    // Look to flock center
+
+    mScene->SetCameraPos(Vector3(0.0f, 30.0f, 0.0f));
+    forward =
+        Vector3::Normalize(mScene->GetFlockCenter() - mScene->GetCameraPos());
+    mScene->SetCameraRotation(Math::LookRotation(forward, Vector3::UnitY));
+    // mScene->SetCameraForward(forward);
+    // mScene->SetCameraUp(Vector3::UnitY);
+
+    break;
+  case CameraMode::FollowBoid: {
+    Vector3 flockCenter = mScene->GetFlockCenter();
+    Vector3 cameraPos =
+        Vector3::Lerp(mScene->GetCameraPos(), flockCenter, 0.05f);
+    forward = Vector3::Normalize(flockCenter - cameraPos);
+    mScene->SetCameraForward(forward);
+    mScene->SetCameraPos(cameraPos);
   }
-
-  // Update camera forward based on yaw and pitch
-  Vector3 forward =
-      Vector3(Math::Cos(mPitch) * Math::Cos(mYaw), Math::Sin(mPitch),
-              Math::Cos(mPitch) * Math::Sin(mYaw));
-  scene->SetCameraForward(forward);
+  case CameraMode::SeeBoid: {
+    /*
+    auto leader = mScene->GetLeader();
+    if (leader) {
+      Vector3 leaderPos = leader->GetPosition();
+      Vector3 cameraPos =
+          Vector3::Lerp(mScene->GetCameraPos(), leaderPos, 0.05f);
+      forward = Vector3::Normalize(leaderPos - cameraPos);
+      mScene->SetCameraForward(forward);
+      mScene->SetCameraPos(cameraPos);
+    }
+    */
+  } break;
+  default:
+    break;
+  }
 }

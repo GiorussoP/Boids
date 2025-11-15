@@ -44,8 +44,7 @@ void RigidBodyComponent::Update(float deltaTime) {
   }
 
   // Update owner actor's position
-  mOwner->SetPosition(mOwner->GetPosition() +
-                      mVelocity.ProjectedOnPlane(Vector3::UnitY) * deltaTime);
+  mOwner->SetPosition(mOwner->GetPosition() + mVelocity * deltaTime);
 
   // Reset acceleration for next frame
   mAcceleration = Vector3::Zero;

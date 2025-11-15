@@ -227,6 +227,8 @@ Mesh *Renderer::LoadMesh(const std::string &meshName) {
     mesh = new PlaneMesh();
   } else if (meshName == "sphere") {
     mesh = new SphereMesh();
+  } else if (meshName == "cone") {
+    mesh = new ConeMesh();
   } else {
     std::cerr << "LoadMesh: unknown mesh name '" << meshName << "'"
               << std::endl;

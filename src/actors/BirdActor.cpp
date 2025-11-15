@@ -3,7 +3,9 @@
 #include "Scene.hpp"
 #include "render/Renderer.hpp"
 
-BirdActor::BirdActor(Scene *scene) : Actor(scene), mflapTimer(0.0f) {
+BirdActor::BirdActor(Scene *scene, BirdType type)
+    : Actor(scene), mflapTimer(((float)(std::rand() % 100)) / Math::Pi),
+      mPrevYaw(0.0f), mType(type) {
 
   Mesh *pyramidMesh = scene->GetRenderer()->LoadMesh("pyramid");
 
@@ -11,49 +13,93 @@ BirdActor::BirdActor(Scene *scene) : Actor(scene), mflapTimer(0.0f) {
   mBody = new MeshComponent(this, *pyramidMesh, Vector3(0.0f, 0.0f, 0.0f),
                             Vector3(0.75f, 2.0f, 0.75f),
                             Quaternion(Vector3::UnitX, -Math::PiOver2));
-  mBody->SetColor(Color::White);
 
   mLeftWing = new MeshComponent(this, *pyramidMesh, Vector3(-0.5f, 0.0f, 0.0f),
                                 Vector3(0.1f, 2.0f, 1.5f));
-  mLeftWing->SetColor(Color::White);
 
   mRightWing = new MeshComponent(this, *pyramidMesh, Vector3(0.5f, 0.0f, 0.0f),
                                  Vector3(0.1f, 2.0f, 1.5f));
 
-  mRightWing->SetColor(Color::White);
-
   mBeak = new MeshComponent(this, *pyramidMesh, Vector3(0.0f, 0.0f, 1.25f),
                             Vector3(0.5f, 0.5f, 0.5f),
                             Quaternion(Vector3::UnitX, Math::PiOver2));
-  mBeak->SetColor(Color::Red);
+  mBeak->SetColor(Color::Orange);
 
   mTail = new MeshComponent(this, *pyramidMesh, Vector3(0.0f, 0.0f, -1.25f),
                             Vector3(1.5f, 0.5f, 0.2f),
                             Quaternion(Vector3::UnitX, Math::PiOver2));
-  mTail->SetColor(Color::White);
+
+  Vector3 color = (type == Leader) ? Color::Yellow : Color::White;
+  mBody->SetColor(color);
+  mLeftWing->SetColor(color);
+  mRightWing->SetColor(color);
+  mTail->SetColor(color);
+
+  mRigidBody = new RigidBodyComponent(this, 1.0f, 0.0f);
 }
 
 void BirdActor::OnUpdate(float deltaTime) {
-  // Flap wings
-  mflapTimer += deltaTime * 5.0f;
+  // Animation
+  mflapTimer += deltaTime * 25.0f;
   float wingAngle = Math::Sin(mflapTimer) * Math::ToRadians(45.0f);
 
   mLeftWing->SetRotation(
       Quaternion::Concatenate(Quaternion(Vector3::UnitZ, Math::PiOver2),
                               Quaternion(Vector3::UnitZ, wingAngle)));
   mLeftWing->SetOffset(Vector3(-1.0f, 1.0f * Math::Sin(-wingAngle), 0.0f));
-
   mRightWing->SetRotation(
       Quaternion::Concatenate(Quaternion(Vector3::UnitZ, -Math::PiOver2),
                               Quaternion(Vector3::UnitZ, -wingAngle)));
   mRightWing->SetOffset(Vector3(1.0f, 1.0f * Math::Sin(-wingAngle), 0.0f));
-  // mRightWing->SetRotation(rightWingRot);
 
-  Vector3 pos =
-      Vector3::Transform(GetPosition(), Matrix4::CreateRotationY(deltaTime));
-  // SetPosition(pos);
+  // Behaviour
+  if (mType == Leader) {
+    // Orbit the origin
+    mRigidBody->SetVelocity(
+        Vector3::Normalize(Vector3(
+            -mPosition.z, Math::Sin(mPosition.x * 0.1f) * 10.0f, mPosition.x)) *
+        20.0f);
 
-  mRotation = Quaternion::Concatenate(
-      mRotation,
-      Quaternion(Vector3::UnitY, deltaTime * Math::ToRadians(20.0f)));
+  } else {
+    // Follow leader bird
+    BirdActor *leader = mScene->GetLeader();
+
+    Vector3 toLeader = leader->GetPosition() - GetPosition();
+    float distance = toLeader.Length();
+    toLeader.Normalize();
+    Vector3 desiredVelocity = toLeader * 25.0f;
+    Vector3 steering = desiredVelocity - mRigidBody->GetVelocity();
+    mRigidBody->ApplyForce(steering);
+
+    // Avoid crowding
+    for (auto actor : mScene->GetActors()) {
+      BirdActor *otherBird = dynamic_cast<BirdActor *>(actor);
+      if (otherBird != nullptr && otherBird != this) {
+        Vector3 toOther = otherBird->GetPosition() - GetPosition();
+        float distSq = toOther.LengthSq();
+        if (distSq < 15.0f) {
+          toOther.Normalize();
+          mRigidBody->ApplyForce(-1.0f * toOther * 50.0f);
+        }
+      }
+    }
+  }
+
+  // Rotation
+  Vector3 velocity = mRigidBody->GetVelocity() * 100.0f;
+  if (velocity.LengthSq() > 0.0f) {
+    velocity.Normalize();
+    float pitch = Math::ASin(-velocity.y);
+    float yaw = Math::Atan2(velocity.x, velocity.z);
+    float deltaYaw = yaw - mPrevYaw;
+    mPrevYaw = yaw;
+    float roll = Math::Clamp(deltaYaw * 10.0f, -Math::Pi / 2, Math::Pi / 2);
+    SetRotation(Quaternion::Concatenate(
+        Quaternion::Concatenate(
+            Quaternion(Vector3::UnitY, yaw),
+
+            Quaternion(Vector3::Normalize(velocity), pitch)),
+
+        Quaternion(Vector3::UnitZ, roll)));
+  }
 }

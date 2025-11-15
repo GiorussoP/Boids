@@ -3,21 +3,29 @@
 
 #include "Actor.hpp"
 #include "MeshComponent.hpp"
+#include "RigidBodyComponent.hpp"
+
+enum BirdType { Leader, Follower };
 
 class BirdActor : public Actor {
 public:
-  BirdActor(class Scene *scene);
+  BirdActor(class Scene *scene, BirdType type = Follower);
   ~BirdActor() {};
   void OnUpdate(float deltaTime) override;
 
 private:
   float mflapTimer;
+  float mPrevYaw;
 
   MeshComponent *mBody;
   MeshComponent *mLeftWing;
   MeshComponent *mRightWing;
   MeshComponent *mBeak;
   MeshComponent *mTail;
+
+  BirdType mType;
+
+  RigidBodyComponent *mRigidBody;
 };
 
 #endif

@@ -11,5 +11,5 @@ GroundActor::GroundActor(Scene *scene) : Actor(scene) {
   mMeshComponent =
       new MeshComponent(this, *groundMesh, Vector3(0.0f, 0.0f, 0.0f));
   mMeshComponent->SetColor(Color::Green);
-  SetScale(Vector3(100.0f, 1.0f, 100.0f));
+  SetScale(Vector3(1000.0f, 1.0f, 1000.0f));
 }

@@ -48,6 +48,8 @@ template <typename T>
 
 [[nodiscard]] inline float Acos(float value) { return acosf(value); }
 
+[[nodiscard]] inline float ASin(float value) { return asinf(value); }
+
 [[nodiscard]] inline float Atan2(float y, float x) { return atan2f(y, x); }
 
 [[nodiscard]] inline float Cot(float angle) { return 1.0f / Tan(angle); }

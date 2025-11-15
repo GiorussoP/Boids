@@ -5,6 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
+enum class CameraMode { Free, Fixed, FollowBoid, SeeBoid };
+
 class Scene {
 public:
   Scene();
@@ -21,6 +23,9 @@ public:
   void AddActor(class Actor *actor);
   void RemoveActor(class Actor *actor);
 
+  std::vector<class Actor *> &GetActors() { return mActors; }
+  class BirdActor *GetLeader() { return mLeader; }
+
   // Renderer getter
   class Renderer *GetRenderer() { return mRenderer; }
 
@@ -34,9 +39,12 @@ public:
   Vector3 GetCameraUp() const { return mCameraUp; }
   void SetCameraUp(const Vector3 up) { mCameraUp = up; }
 
+  Vector3 &GetFlockCenter() { return mFlockCenter; }
+
   Quaternion GetCameraRotation() const {
     return Math::LookRotation(mCameraForward, mCameraUp);
   }
+  CameraMode GetCameraMode() const { return mCameraMode; }
 
   void SetCameraRotation(const Quaternion rotation) {
     mCameraForward = Vector3::Transform(Vector3::UnitZ, rotation);
@@ -69,6 +77,9 @@ private:
   Vector3 mCameraPos;
   Vector3 mCameraForward;
   Vector3 mCameraUp;
+  CameraMode mCameraMode;
+  Vector3 mFlockCenter;
+  Vector3 mFlockVelocity;
 
   // Scene state
   Uint32 mTicksCount;
@@ -78,6 +89,9 @@ private:
 
   // Camera controller
   class CameraControllerActor *mCameraController;
+
+  // Leader bird
+  class BirdActor *mLeader;
 };
 
 #endif

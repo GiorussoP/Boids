@@ -129,77 +129,87 @@ CubeMesh::CubeMesh() { Build(GenerateCubeData()); }
 MeshData CubeMesh::GenerateCubeData() {
   MeshData data;
 
-  // Front face (Z+)
-  {
-    Vector3 normal(0.0f, 0.0f, 1.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, 0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
+  // Define 8 vertices for shared corners
+  std::vector<Vector3> positions = {
+      Vector3(-0.5f, -0.5f, -0.5f), // 0: back-bottom-left
+      Vector3(0.5f, -0.5f, -0.5f),  // 1: back-bottom-right
+      Vector3(0.5f, 0.5f, -0.5f),   // 2: back-top-right
+      Vector3(-0.5f, 0.5f, -0.5f),  // 3: back-top-left
+      Vector3(-0.5f, -0.5f, 0.5f),  // 4: front-bottom-left
+      Vector3(0.5f, -0.5f, 0.5f),   // 5: front-bottom-right
+      Vector3(0.5f, 0.5f, 0.5f),    // 6: front-top-right
+      Vector3(-0.5f, 0.5f, 0.5f)    // 7: front-top-left
+  };
+
+  // Face normals
+  std::vector<Vector3> faceNormals = {
+      Vector3(0.0f, 0.0f, -1.0f), // back
+      Vector3(1.0f, 0.0f, 0.0f),  // right
+      Vector3(0.0f, 0.0f, 1.0f),  // front
+      Vector3(-1.0f, 0.0f, 0.0f), // left
+      Vector3(0.0f, 1.0f, 0.0f),  // top
+      Vector3(0.0f, -1.0f, 0.0f)  // bottom
+  };
+
+  // For each vertex, average normals of adjacent faces
+  std::vector<Vector3> vertexNormals(8, Vector3::Zero);
+
+  // Back face (Z-): 0,1,2,3
+  for (int i = 0; i < 4; i++)
+    vertexNormals[i] += faceNormals[0];
+  // Right face (X+): 1,5,6,2
+  vertexNormals[1] += faceNormals[1];
+  vertexNormals[5] += faceNormals[1];
+  vertexNormals[6] += faceNormals[1];
+  vertexNormals[2] += faceNormals[1];
+  // Front face (Z+): 5,4,7,6
+  for (int i = 4; i < 8; i++)
+    vertexNormals[i] += faceNormals[2];
+  // Left face (X-): 4,0,3,7
+  vertexNormals[4] += faceNormals[3];
+  vertexNormals[0] += faceNormals[3];
+  vertexNormals[3] += faceNormals[3];
+  vertexNormals[7] += faceNormals[3];
+  // Top face (Y+): 3,2,6,7
+  vertexNormals[3] += faceNormals[4];
+  vertexNormals[2] += faceNormals[4];
+  vertexNormals[6] += faceNormals[4];
+  vertexNormals[7] += faceNormals[4];
+  // Bottom face (Y-): 4,5,1,0
+  vertexNormals[4] += faceNormals[5];
+  vertexNormals[5] += faceNormals[5];
+  vertexNormals[1] += faceNormals[5];
+  vertexNormals[0] += faceNormals[5];
+
+  // Normalize the averaged normals
+  for (auto &normal : vertexNormals) {
+    normal.Normalize();
   }
 
-  // Back face (Z-)
-  {
-    Vector3 normal(0.0f, 0.0f, -1.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, -0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
+  // Create vertices
+  for (int i = 0; i < 8; i++) {
+    data.vertices.push_back(Vertex(positions[i], vertexNormals[i]));
   }
 
-  // Right face (X+)
-  {
-    Vector3 normal(1.0f, 0.0f, 0.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, 0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
-  }
-
-  // Left face (X-)
-  {
-    Vector3 normal(-1.0f, 0.0f, 0.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, -0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
-  }
-
-  // Top face (Y+)
-  {
-    Vector3 normal(0.0f, 1.0f, 0.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, 0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, -0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
-  }
-
-  // Bottom face (Y-)
-  {
-    Vector3 normal(0.0f, -1.0f, 0.0f);
-    unsigned int baseIdx = data.vertices.size();
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, -0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(0.5f, -0.5f, 0.5f), normal));
-    data.vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, 0.5f), normal));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 2, baseIdx + 1));
-    data.triangles.push_back(Triangle(baseIdx + 0, baseIdx + 3, baseIdx + 2));
-  }
+  // Define triangles with shared vertices
+  // Back face
+  data.triangles.push_back(Triangle(0, 2, 1));
+  data.triangles.push_back(Triangle(0, 3, 2));
+  // Right face
+  data.triangles.push_back(Triangle(1, 2, 6));
+  data.triangles.push_back(Triangle(1, 6, 5));
+  // Front face
+  data.triangles.push_back(Triangle(5, 6, 7));
+  data.triangles.push_back(Triangle(5, 7, 4));
+  // Left face
+  data.triangles.push_back(Triangle(4, 7, 3));
+  data.triangles.push_back(Triangle(4, 3, 0));
+  // Top face
+  data.triangles.push_back(Triangle(3, 6, 2));
+  data.triangles.push_back(Triangle(3, 7, 6));
+  // Bottom face
+  data.triangles.push_back(Triangle(4, 1, 5));
+  data.triangles.push_back(Triangle(4, 0, 1));
 
   return data;
 }
@@ -430,6 +440,40 @@ MeshData SphereMesh::GenerateIcosahedronData() {
   // Create triangles
   for (const auto &face : faces) {
     data.triangles.push_back(Triangle(face[0], face[1], face[2]));
+  }
+
+  return data;
+}
+
+// ============== ConeMesh Class ==============
+
+ConeMesh::ConeMesh() { Build(GenerateConeData()); }
+
+MeshData ConeMesh::GenerateConeData() {
+  MeshData data;
+
+  const int segments = 8;
+  const float radius = 0.5f;
+  const float height = 1.0f;
+
+  // Apex
+  Vector3 apex(0.0f, height / 2.0f, 0.0f);
+  data.vertices.push_back(Vertex(apex, Vector3(0.0f, 1.0f, 0.0f)));
+
+  // Base vertices
+  for (int i = 0; i < segments; i++) {
+    float angle = 2.0f * Math::Pi * i / segments;
+    Vector3 pos(radius * Math::Cos(angle), -height / 2.0f,
+                radius * Math::Sin(angle));
+    Vector3 normal =
+        Vector3::Normalize(pos - Vector3(0.0f, -height / 2.0f, 0.0f));
+    data.vertices.push_back(Vertex(pos, normal));
+  }
+
+  // Triangles for sides
+  for (int i = 0; i < segments; i++) {
+    int next = (i + 1) % segments;
+    data.triangles.push_back(Triangle(0, 1 + i, 1 + next));
   }
 
   return data;

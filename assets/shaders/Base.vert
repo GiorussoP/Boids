@@ -14,7 +14,7 @@ uniform mat4 uViewProjection;
 uniform mat4 uView;
 uniform vec3 uCameraPos;
 
-flat out vec3 fragNormal;
+out vec3 fragNormal;
 out vec3 fragColor;
 out vec3 fragPosition;
 

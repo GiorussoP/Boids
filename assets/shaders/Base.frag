@@ -1,7 +1,7 @@
 #version 330 core
 
 // From vertex shader
-flat in vec3 fragNormal;
+in vec3 fragNormal;
 in vec3 fragColor;
 in vec3 fragPosition;
 
