@@ -1,5 +1,6 @@
 #include "actors/CameraControllerActor.hpp"
 
+#include "BirdActor.hpp"
 #include "Input.hpp"
 #include "Math.hpp"
 #include "Scene.hpp"
@@ -99,25 +100,26 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
 
     break;
   case CameraMode::FollowBoid: {
+    forward = Vector3::Normalize(mScene->GetFlockVelocity());
     Vector3 flockCenter = mScene->GetFlockCenter();
-    Vector3 cameraPos =
-        Vector3::Lerp(mScene->GetCameraPos(), flockCenter, 0.05f);
-    forward = Vector3::Normalize(flockCenter - cameraPos);
-    mScene->SetCameraForward(forward);
+    Vector3 cameraPos = Vector3::Lerp(mScene->GetCameraPos(),
+                                      flockCenter - (15.0f * forward), 0.05f);
+
+    mScene->SetCameraForward(
+        Vector3::Lerp(mScene->GetCameraForward(), forward, 0.05f));
+    mScene->SetCameraUp(Vector3::UnitY);
     mScene->SetCameraPos(cameraPos);
-  }
+  } break;
   case CameraMode::SeeBoid: {
-    /*
-    auto leader = mScene->GetLeader();
-    if (leader) {
-      Vector3 leaderPos = leader->GetPosition();
-      Vector3 cameraPos =
-          Vector3::Lerp(mScene->GetCameraPos(), leaderPos, 0.05f);
-      forward = Vector3::Normalize(leaderPos - cameraPos);
-      mScene->SetCameraForward(forward);
-      mScene->SetCameraPos(cameraPos);
-    }
-    */
+    auto flockCenter = mScene->GetFlockCenter();
+
+    Vector3 cameraPos =
+        Vector3::Lerp(mScene->GetCameraPos(),
+                      flockCenter + Vector3(0.0f, 15.0f, 0.0f), 0.05f);
+
+    mScene->SetCameraForward(Vector3::NegUnitY);
+    mScene->SetCameraUp(Vector3::Normalize(mScene->GetFlockVelocity()));
+    mScene->SetCameraPos(cameraPos);
   } break;
   default:
     break;

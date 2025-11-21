@@ -24,8 +24,8 @@ Scene::Scene()
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
       mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
       mCameraMode(CameraMode::Free), mFlockCenter(Vector3::Zero),
-      mTicksCount(0), mIsRunning(true), mIsDebugging(false),
-      mCameraController(nullptr), mLeader(nullptr) {}
+      mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true),
+      mIsDebugging(false), mCameraController(nullptr), mLeader(nullptr) {}
 
 bool Scene::Initialize() {
   // Initialize SDL
@@ -271,6 +271,7 @@ void Scene::UpdateActors(float deltaTime) {
   mUpdatingActors = true;
 
   Vector3 flockCenter = Vector3::Zero;
+  Vector3 flockVelocity = Vector3::Zero;
   int birdCount = 0;
 
   // Update all active actors
@@ -279,13 +280,16 @@ void Scene::UpdateActors(float deltaTime) {
     if (actor->GetState() == ActorState::Active) {
       if (auto bird = dynamic_cast<BirdActor *>(actor)) {
         flockCenter += bird->GetPosition();
+        flockVelocity +=
+            bird->GetComponent<RigidBodyComponent>()->GetVelocity();
         birdCount++;
       }
     }
   }
-  if (birdCount > 0)
+  if (birdCount > 0) {
     mFlockCenter = flockCenter * (1.0 / static_cast<float>(birdCount));
-
+    mFlockVelocity = flockVelocity * (1.0 / static_cast<float>(birdCount));
+  }
   mUpdatingActors = false;
 
   // Move pending actors to active and register with chunk grid
@@ -392,6 +396,7 @@ void Scene::GenerateOutput() {
   mRenderer->ActivateMeshShader();
   mRenderer->DrawMeshesInstanced(activeMeshes, mode);
 
+  /*
   if (mIsDebugging) {
     for (auto actor : mActors) {
       auto &components = actor->GetComponents();
@@ -400,6 +405,7 @@ void Scene::GenerateOutput() {
       }
     }
   }
+  */
 
   SDL_GL_SwapWindow(mWindow);
 }

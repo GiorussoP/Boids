@@ -13,6 +13,8 @@ public:
   ~BirdActor() {};
   void OnUpdate(float deltaTime) override;
 
+  RigidBodyComponent &GetRigidBody() { return *mRigidBody; }
+
 private:
   float mflapTimer;
   float mPrevYaw;

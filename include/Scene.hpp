@@ -40,6 +40,7 @@ public:
   void SetCameraUp(const Vector3 up) { mCameraUp = up; }
 
   Vector3 &GetFlockCenter() { return mFlockCenter; }
+  Vector3 &GetFlockVelocity() { return mFlockVelocity; }
 
   Quaternion GetCameraRotation() const {
     return Math::LookRotation(mCameraForward, mCameraUp);

@@ -60,17 +60,19 @@ void BirdActor::OnUpdate(float deltaTime) {
     // Orbit the origin
     mRigidBody->SetVelocity(
         Vector3::Normalize(Vector3(
-            -mPosition.z, Math::Sin(mPosition.x * 0.1f) * 10.0f, mPosition.x)) *
-        20.0f);
+            -mPosition.z, std::round(Math::Sin(mPosition.x * 0.1f)) * 10.0f,
+            mPosition.x)) *
+        10.0f);
 
   } else {
     BirdActor *leader = mScene->GetLeader();
     Vector3 toLeader = leader->GetPosition() - GetPosition();
     toLeader.Normalize();
-    Vector3 desiredToLeader = toLeader * 25.0f;
+    Vector3 desiredToLeader = toLeader * 50.0f;
 
-    const float neighborRadius = 20.0f;
+    const float neighborRadius = 30.0f;
     Vector3 avgVelocity = Vector3::Zero;
+    Vector3 flockCenter = Vector3::Zero;
     int neighborCount = 0;
 
     for (auto actor : mScene->GetActors()) {
@@ -79,8 +81,8 @@ void BirdActor::OnUpdate(float deltaTime) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
         if (distSq < neighborRadius * neighborRadius) {
-          avgVelocity +=
-              otherBird->GetComponent<RigidBodyComponent>()->GetVelocity();
+          avgVelocity += otherBird->GetRigidBody().GetVelocity();
+          flockCenter += otherBird->GetPosition();
           neighborCount++;
         }
       }
@@ -89,13 +91,20 @@ void BirdActor::OnUpdate(float deltaTime) {
     Vector3 desiredVelocity;
     if (neighborCount > 0) {
       avgVelocity = avgVelocity * (1.0f / (float)neighborCount);
-      desiredVelocity = (desiredToLeader + avgVelocity) * 0.5f;
+      flockCenter = flockCenter * (1.0f / (float)neighborCount);
+      Vector3 toFlockCenter = flockCenter - GetPosition();
+      toFlockCenter.Normalize();
+      Vector3 desiredToCenter = toFlockCenter;
+      desiredVelocity =
+          (desiredToLeader + avgVelocity + desiredToCenter) * (1.0f / 3.0f);
     } else {
       desiredVelocity = desiredToLeader;
     }
 
     Vector3 steering = desiredVelocity - mRigidBody->GetVelocity();
-    mRigidBody->ApplyForce(steering);
+    if (steering.LengthSq() > 0.1f) {
+      mRigidBody->ApplyForce(steering);
+    }
 
     // Avoid crowding
     for (auto actor : mScene->GetActors()) {
@@ -103,9 +112,12 @@ void BirdActor::OnUpdate(float deltaTime) {
       if (otherBird != nullptr && otherBird != this) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
-        if (distSq < 10.0f) {
-          toOther.Normalize();
-          mRigidBody->ApplyForce(-1.0f * toOther * 50.0f);
+        if (distSq < 20.0f) {
+          Vector3 repulsion =
+              -10.0f * toOther * (1.0f / std::max(distSq, 0.0001f));
+          if (repulsion.LengthSq() > 0.1f) {
+            mRigidBody->ApplyForce(repulsion);
+          }
         }
       }
     }
@@ -113,19 +125,19 @@ void BirdActor::OnUpdate(float deltaTime) {
 
   // Rotation
   Vector3 velocity = mRigidBody->GetVelocity();
-  if (velocity.LengthSq() > 0.0f) {
+  if (velocity.LengthSq() > 0.5f) {
     velocity.Normalize();
-    float pitch = Math::ASin(-velocity.y);
+    float pitch = -Math::ASin(-velocity.y);
     float yaw = Math::Atan2(velocity.x, velocity.z);
     float deltaYaw = yaw - mPrevYaw;
     mPrevYaw = yaw;
-    float roll = Math::Clamp(deltaYaw * 10.0f, -Math::Pi / 2, Math::Pi / 2);
+    float roll = Math::Clamp(deltaYaw, -Math::Pi, Math::Pi);
     SetRotation(Quaternion::Concatenate(
         Quaternion::Concatenate(
             Quaternion(Vector3::UnitY, yaw),
 
             Quaternion(Vector3::Normalize(velocity), pitch)),
 
-        Quaternion(Vector3::UnitZ, roll)));
+        Quaternion(Vector3::UnitZ, -roll)));
   }
 }
