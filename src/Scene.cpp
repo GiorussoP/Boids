@@ -110,12 +110,14 @@ void Scene::InitializeActors() {
   mLeader->GetComponent<RigidBodyComponent>()->SetVelocity(
       Vector3(0.0f, 0.0f, 20.0f));
 
-  for (int i = 0; i < 200; i++) {
+  for (int i = 0; i < 10; i++) {
     BirdActor *bird = new BirdActor(this);
-    bird->SetPosition(Vector3((std::rand() % 20), 20, (std::rand() % 20)));
+    bird->SetPosition(
+        Vector3((std::rand() % 20 - 10), 20, (std::rand() % 20) - 10));
     bird->GetComponent<RigidBodyComponent>()->SetVelocity(
         Vector3((std::rand() % 41 - 20), (std::rand() % 41 - 20),
                 (std::rand() % 41 - 20)));
+    mBirds.emplace_back(bird);
   }
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
@@ -156,6 +158,8 @@ void Scene::Shutdown() {
     mWindow = nullptr;
     std::cout << "Shutdown: Window closed" << std::endl;
   }
+
+  mBirds.clear();
 
   // Delete all actors
   std::cout << "Shutdown: Deleting " << mActors.size() << " actors..."
@@ -260,6 +264,24 @@ void Scene::ProcessInput() {
 
     std::cout << "=== DEBUG MODE " << (mIsDebugging ? "ENABLED" : "DISABLED")
               << " ===" << std::endl;
+  }
+
+  if (Input::WasKeyPressed(SDL_SCANCODE_EQUALS)) {
+    BirdActor *bird = new BirdActor(this);
+    bird->SetPosition(mFlockCenter + Vector3((std::rand() % 41 - 20),
+                                             (std::rand() % 41 - 20),
+                                             (std::rand() % 41) - 20));
+    bird->GetComponent<RigidBodyComponent>()->SetVelocity(
+        Vector3((std::rand() % 41 - 20), (std::rand() % 41 - 20),
+                (std::rand() % 41 - 20)));
+    mBirds.emplace_back(bird);
+  }
+  if (Input::WasKeyPressed(SDL_SCANCODE_MINUS)) {
+    if (!mBirds.empty()) {
+      auto b = mBirds.back();
+      mBirds.pop_back();
+      RemoveActor(b);
+    }
   }
 
   for (auto &actor : mActors) {

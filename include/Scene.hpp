@@ -93,6 +93,9 @@ private:
 
   // Leader bird
   class BirdActor *mLeader;
+
+  // Other birds
+  std::vector<class BirdActor *> mBirds;
 };
 
 #endif
