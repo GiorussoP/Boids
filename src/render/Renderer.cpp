@@ -48,8 +48,10 @@ bool Renderer::Initialize(float width, float height) {
 
   // Set default projection matrix based on framebuffer size (perspective)
   float fov = Math::ToRadians(60.0f);
+  mScreenWidth = width;
+  mScreenHeight = height;
   mProjectionMatrix =
-      Matrix4::CreatePerspectiveFOV(fov, width, height, 0.1f, 200.0f);
+      Matrix4::CreatePerspectiveFOV(fov, width, height, 0.1f, 1500.0f);
 
   // Activate mesh shader
   if (mMeshShader) {
@@ -202,6 +204,14 @@ void Renderer::SetCameraPos(const Vector3 &pos) { mCameraPos = pos; }
 
 void Renderer::SetDownsampleFactor(int factor) { mDownsampleFactor = factor; }
 
+void Renderer::SetFOV(float fov) {
+  mProjectionMatrix = Matrix4::CreatePerspectiveFOV(fov, mScreenWidth, mScreenHeight, 0.1f, 1500.0f);
+}
+
+float Renderer::GetScreenWidth() const { return mScreenWidth; }
+
+float Renderer::GetScreenHeight() const { return mScreenHeight; }
+
 void Renderer::Present() {
   // Buffer swapping is now handled by SDL in main.cpp
   // This function kept for API compatibility but does nothing
@@ -270,7 +280,7 @@ void Renderer::ActivateMeshShader() {
   mMeshShader->SetVectorUniform("uAmbientColor", Vector3(0.2f, 0.2f, 0.2f));
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
   mMeshShader->SetVectorUniform("uFogColor", Vector3(0.53f, 0.81f, 0.92f));
-  mMeshShader->SetFloatUniform("uFogDensity", 0.005f);
+  mMeshShader->SetFloatUniform("uFogDensity", 0.007f);
 }
 
 void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,

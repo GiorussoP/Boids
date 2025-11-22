@@ -4,6 +4,7 @@
 #include "actors/BirdActor.hpp"
 #include "actors/CameraControllerActor.hpp"
 #include "actors/GroundActor.hpp"
+#include "actors/OceanActor.hpp"
 #include "actors/TowerActor.hpp"
 #include "render/Mesh.hpp"
 #include "render/Renderer.hpp"
@@ -89,7 +90,7 @@ bool Scene::Initialize() {
   float fov = Math::ToRadians(60.0f);
   Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
       fov, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
-      0.1f, 1000.0f);
+      0.1f, 1500.0f);
   mRenderer->SetProjectionMatrix(perspectiveProjection);
 
   mTicksCount = SDL_GetTicks();
@@ -112,6 +113,8 @@ void Scene::InitializeActors() {
   mCameraController = new CameraControllerActor(this);
 
   new TowerActor(this);
+
+  new OceanActor(this);  // Add ocean plane
 
   mLeader = new BirdActor(this, BirdType::Leader);
   mLeader->SetPosition(Vector3(60.0f, 350.0f, 0.0f));
@@ -226,7 +229,7 @@ void Scene::ProcessInput() {
         float fov = Math::ToRadians(60.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
             fov, static_cast<float>(event.window.data1),
-            static_cast<float>(event.window.data2), 0.1f, 1000.0f);
+            static_cast<float>(event.window.data2), 0.1f, 1500.0f);
         mRenderer->SetProjectionMatrix(perspectiveProjection);
       }
       break;

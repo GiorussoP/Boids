@@ -43,6 +43,9 @@ public:
   void SetProjectionMatrix(const Matrix4 &projection);
   void SetCameraPos(const Vector3 &pos);
   void SetDownsampleFactor(int factor);
+  void SetFOV(float fov);
+  float GetScreenWidth() const;
+  float GetScreenHeight() const;
 
   void Clear();
   void Present();
@@ -54,6 +57,8 @@ private:
   Matrix4 mViewMatrix;
   Matrix4 mProjectionMatrix;
   Vector3 mCameraPos;
+  float mScreenWidth;
+  float mScreenHeight;
 
   // Shaders
   Shader *mMeshShader;
