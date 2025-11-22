@@ -47,7 +47,7 @@ bool Renderer::Initialize(float width, float height) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // Set default projection matrix based on framebuffer size (perspective)
-  float fov = Math::ToRadians(90.0f);
+  float fov = Math::ToRadians(60.0f);
   mProjectionMatrix =
       Matrix4::CreatePerspectiveFOV(fov, width, height, 0.1f, 200.0f);
 
