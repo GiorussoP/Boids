@@ -89,7 +89,7 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
     // Look to flock center
 
     mScene->SetCameraPos(Vector3::Lerp(mScene->GetCameraPos(),
-                                       Vector3(0.0f, 50.0f, 0.0f), 0.05f));
+                                       Vector3(0.0f, 400.0f, 0.0f), 0.05f));
     forward =
         Vector3::Normalize(mScene->GetFlockCenter() - mScene->GetCameraPos());
     mScene->SetCameraRotation(
@@ -118,7 +118,9 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
                       flockCenter + Vector3(0.0f, 15.0f, 0.0f), 0.05f);
 
     mScene->SetCameraForward(Vector3::NegUnitY);
-    mScene->SetCameraUp(Vector3::Normalize(mScene->GetFlockVelocity()));
+    mScene->SetCameraUp(
+        Vector3::Lerp(mScene->GetCameraUp(),
+                      Vector3::Normalize(mScene->GetFlockVelocity()), 0.05f));
     mScene->SetCameraPos(cameraPos);
   } break;
   default:

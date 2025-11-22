@@ -18,6 +18,7 @@ public:
 private:
   float mflapTimer;
   float mPrevYaw;
+  float mRandomAngle;
 
   MeshComponent *mBody;
   MeshComponent *mLeftWing;

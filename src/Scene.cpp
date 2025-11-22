@@ -23,7 +23,7 @@ Scene::Scene()
     : mUpdatingActors(false), mWindow(nullptr), mGLContext(nullptr),
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
       mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
-      mCameraMode(CameraMode::Free), mFlockCenter(Vector3::Zero),
+      mCameraMode(CameraMode::FollowBoid), mFlockCenter(Vector3::Zero),
       mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true),
       mIsDebugging(false), mCameraController(nullptr), mLeader(nullptr) {}
 
@@ -86,7 +86,7 @@ bool Scene::Initialize() {
   }
 
   // Set initial projection matrix
-  float fov = Math::ToRadians(90.0f);
+  float fov = Math::ToRadians(60.0f);
   Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
       fov, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
       0.1f, 1000.0f);
@@ -100,25 +100,23 @@ bool Scene::Initialize() {
 }
 
 void Scene::InitializeActors() {
+  const float heightScale = 1000.0f;
+  const float horizontalScaleFactor = 1000.0f / 1024.0f;
+  const float offset = horizontalScaleFactor * 512.5f;
+
+  mHeightmapOffset = offset;
+  mHeightmapScale = horizontalScaleFactor;
+  mHeightmapHeightScale = heightScale;
+
   new GroundActor(this);
   mCameraController = new CameraControllerActor(this);
 
   new TowerActor(this);
 
   mLeader = new BirdActor(this, BirdType::Leader);
-  mLeader->SetPosition(Vector3(20.0f, 50.0f, 0.0f));
+  mLeader->SetPosition(Vector3(60.0f, 350.0f, 0.0f));
   mLeader->GetComponent<RigidBodyComponent>()->SetVelocity(
       Vector3(0.0f, 0.0f, 20.0f));
-
-  for (int i = 0; i < 10; i++) {
-    BirdActor *bird = new BirdActor(this);
-    bird->SetPosition(
-        Vector3((std::rand() % 20 - 10), 20, (std::rand() % 20) - 10));
-    bird->GetComponent<RigidBodyComponent>()->SetVelocity(
-        Vector3((std::rand() % 41 - 20), (std::rand() % 41 - 20),
-                (std::rand() % 41 - 20)));
-    mBirds.emplace_back(bird);
-  }
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
 
@@ -225,7 +223,7 @@ void Scene::ProcessInput() {
         // Handle window resize
         glViewport(0, 0, event.window.data1, event.window.data2);
 
-        float fov = Math::ToRadians(90.0f);
+        float fov = Math::ToRadians(60.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
             fov, static_cast<float>(event.window.data1),
             static_cast<float>(event.window.data2), 0.1f, 1000.0f);

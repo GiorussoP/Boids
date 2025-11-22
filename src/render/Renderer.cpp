@@ -11,8 +11,9 @@
 
 Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
-      mMeshShader(nullptr),
-      lightDir(Vector3::Normalize(Vector3(-1.0f, -1.0f, -1.0f))) {}
+      mMeshShader(nullptr), mGroundMesh(nullptr),
+      lightDir(Vector3::Normalize(Vector3(-1.0f, -1.0f, 1.0f))),
+      mDownsampleFactor(8) {}
 
 Renderer::~Renderer() {
 
@@ -37,9 +38,9 @@ bool Renderer::Initialize(float width, float height) {
   glEnable(GL_DEPTH_TEST);
 
   // Enable backface culling
-  // glEnable(GL_CULL_FACE);
-  // glCullFace(GL_BACK); // Cull back faces
-  // glFrontFace(GL_CCW); // Counter-clockwise winding is front-facing
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK); // Cull back faces
+  glFrontFace(GL_CCW); // Counter-clockwise winding is front-facing
 
   // Enable alpha blending
   glEnable(GL_BLEND);
@@ -172,6 +173,10 @@ void Renderer::DrawMeshesInstanced(const std::vector<MeshComponent *> &meshes,
     // Activate mesh VAO
     group.mesh->SetActive();
 
+    // Set uIsGround
+    mMeshShader->SetFloatUniform("uIsGround",
+                                 group.mesh == mGroundMesh ? 1.0f : 0.0f);
+
     // Draw all instances
     if (mode == RendererMode::LINES) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -194,6 +199,8 @@ void Renderer::SetProjectionMatrix(const Matrix4 &projection) {
 }
 
 void Renderer::SetCameraPos(const Vector3 &pos) { mCameraPos = pos; }
+
+void Renderer::SetDownsampleFactor(int factor) { mDownsampleFactor = factor; }
 
 void Renderer::Present() {
   // Buffer swapping is now handled by SDL in main.cpp
@@ -325,6 +332,9 @@ void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,
   // Update instance buffer with single instance
   mesh->UpdateInstanceBuffer(instanceData, 1);
 
+  // Set uIsGround
+  mMeshShader->SetFloatUniform("uIsGround", mesh == mGroundMesh ? 1.0f : 0.0f);
+
   // Draw using instanced rendering with 1 instance
   glDrawElementsInstanced(GL_TRIANGLES, mesh->GetNumIndices(), GL_UNSIGNED_INT,
                           nullptr, 1);
@@ -336,93 +346,149 @@ void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,
   glEnable(GL_DEPTH_TEST);
 }
 
-Mesh *Renderer::CreateHeightmapMesh(const std::string &path,
-                                    float heightScale) {
-  SDL_Surface *img = IMG_Load(path.c_str());
+float Renderer::GetHeightAt(float x, float z) {
+  const int factor = mDownsampleFactor;
+  float localX = (x + mHeightmapOffset) / (mHeightmapScale * factor);
+  float localZ = (z + mHeightmapOffset) / (mHeightmapScale * factor);
+  int ix = (int)floor(localX);
+  int iz = (int)floor(localZ);
+  float fx = localX - ix;
+  float fz = localZ - iz;
+  ix = Math::Clamp(ix, 0, mHeightmapWidth - 2);
+  iz = Math::Clamp(iz, 0, mHeightmapHeight - 2);
+  float h00 = mHeightmapData[iz * mHeightmapWidth + ix];
+  float h10 = mHeightmapData[iz * mHeightmapWidth + ix + 1];
+  float h01 = mHeightmapData[(iz + 1) * mHeightmapWidth + ix];
+  float h11 = mHeightmapData[(iz + 1) * mHeightmapWidth + ix + 1];
+  float h0 = h00 * (1 - fx) + h10 * fx;
+  float h1 = h01 * (1 - fx) + h11 * fx;
+  return h0 * (1 - fz) + h1 * fz;
+}
 
+Vector3 Renderer::GetNormalAt(float x, float z) {
+  const int factor = mDownsampleFactor;
+  float localX = (x + mHeightmapOffset) / (mHeightmapScale * factor);
+  float localZ = (z + mHeightmapOffset) / (mHeightmapScale * factor);
+  int ix = (int)Math::Clamp(localX, 0.0f, mHeightmapWidth - 1.0f);
+  int iy = (int)Math::Clamp(localZ, 0.0f, mHeightmapHeight - 1.0f);
+
+  float h = mHeightmapData[iy * mHeightmapWidth + ix];
+  float hx_plus = (ix < mHeightmapWidth - 1)
+                      ? mHeightmapData[iy * mHeightmapWidth + ix + 1]
+                      : h;
+  float hx_minus = (ix > 0) ? mHeightmapData[iy * mHeightmapWidth + ix - 1] : h;
+  float hz_plus = (iy < mHeightmapHeight - 1)
+                      ? mHeightmapData[(iy + 1) * mHeightmapWidth + ix]
+                      : h;
+  float hz_minus =
+      (iy > 0) ? mHeightmapData[(iy - 1) * mHeightmapWidth + ix] : h;
+
+  float dx = (hx_plus - hx_minus) / (2.0f * mHeightmapScale * factor);
+  float dz = (hz_plus - hz_minus) / (2.0f * mHeightmapScale * factor);
+
+  Vector3 normal = Vector3(-dx, 1.0f, -dz);
+  normal.Normalize();
+  return normal;
+}
+
+Mesh *Renderer::CreateHeightmapMesh(const std::string &path, float offset,
+                                    float scale, float heightScale) {
+  SDL_Surface *img = IMG_Load(path.c_str());
   const int W = img->w;
   const int H = img->h;
   const int BPP = img->format->BytesPerPixel;
   const int pitch = img->pitch;
   uint8_t *pix = (uint8_t *)img->pixels;
 
-  std::vector<Vertex> vertices;
-  vertices.reserve(W * H);
+  const int factor = mDownsampleFactor; // Downsample factor
+  const int newW = W / factor;
+  const int newH = H / factor;
 
-  // heightmaps de 8 ou 16 bits
-  for (int y = 0; y < H; y++) {
-    uint8_t *row_start = &pix[y * pitch];
-    for (int x = 0; x < W; x++) {
+  mHeightmapWidth = newW;
+  mHeightmapHeight = newH;
+  mHeightmapOffset = offset;
+  mHeightmapScale = scale;
+  mHeightmapHeightScale = heightScale;
+  mHeightmapData.resize(newW * newH);
 
-      uint8_t *p = &row_start[x * BPP];
-      uint16_t hval_16bit;
-      float height_divisor;
-
-      if (BPP >= 2) {
-        memcpy(&hval_16bit, p, 2);
-        height_divisor = 65535.0f;
-      } else {
-        hval_16bit = *p;
-        height_divisor = 255.0f;
+  // Downsample heightmap
+  for (int iy = 0; iy < newH; iy++) {
+    for (int ix = 0; ix < newW; ix++) {
+      float sum = 0.0f;
+      for (int dy = 0; dy < factor; dy++) {
+        for (int dx = 0; dx < factor; dx++) {
+          int px = ix * factor + dx;
+          int py = iy * factor + dy;
+          if (px < W && py < H) {
+            uint8_t *row_start = &pix[py * pitch];
+            uint8_t *p = &row_start[px * BPP];
+            uint16_t hval_16bit;
+            if (BPP >= 2) {
+              memcpy(&hval_16bit, p, 2);
+              sum += float(hval_16bit) / 65535.0f;
+            } else {
+              hval_16bit = *p;
+              sum += float(hval_16bit) / 255.0f;
+            }
+          }
+        }
       }
-
-      float hn = float(hval_16bit) / height_divisor;
+      float hn = sum / (factor * factor);
       float Y = hn * heightScale;
+      mHeightmapData[iy * newW + ix] = Y;
+    }
+  }
 
+  std::vector<Vertex> vertices;
+  vertices.reserve(newW * newH);
+
+  for (int iy = 0; iy < newH; iy++) {
+    for (int ix = 0; ix < newW; ix++) {
+      float Y = mHeightmapData[iy * newW + ix];
       Vertex v;
-      v.position = Vector3(float(x), Y, float(y));
+      v.position = Vector3(float(ix * factor) * scale - offset, Y,
+                           float(iy * factor) * scale - offset);
       v.normal = Vector3(0, 1, 0);
-      v.texture = Vector2(float(x) / (W - 1), float(y) / (H - 1));
-
+      v.texture = Vector2(float(ix) / (newW - 1), float(iy) / (newH - 1));
       vertices.push_back(v);
     }
   }
 
-  // normais pro blinn phong
-  for (int y = 0; y < H - 1; y++) {
-    for (int x = 0; x < W - 1; x++) {
-
-      int i0 = y * W + x;
+  // Compute normals for mesh
+  for (int y = 0; y < newH - 1; y++) {
+    for (int x = 0; x < newW - 1; x++) {
+      int i0 = y * newW + x;
       int i1 = i0 + 1;
-      int i2 = (y + 1) * W + x;
+      int i2 = (y + 1) * newW + x;
       int i3 = i2 + 1;
-
-      // Normais para o Triângulo 1 (i0, i1, i2)
+      // Normals for triangle 1 (i0, i1, i2)
       Vector3 v01 = vertices[i1].position - vertices[i0].position;
       Vector3 v02 = vertices[i2].position - vertices[i0].position;
       Vector3 normal1 = Vector3::Normalize(Vector3::Cross(v02, v01));
-
-      // Normais para o Triângulo 2 (i1, i3, i2)
+      // Normals for triangle 2 (i1, i3, i2)
       Vector3 v13 = vertices[i3].position - vertices[i1].position;
       Vector3 v12 = vertices[i2].position - vertices[i1].position;
       Vector3 normal2 = Vector3::Normalize(Vector3::Cross(v12, v13));
-
       vertices[i0].normal += normal1;
       vertices[i1].normal += normal1 + normal2;
       vertices[i2].normal += normal1 + normal2;
       vertices[i3].normal += normal2;
     }
   }
-
   for (Vertex &v : vertices) {
     v.normal.Normalize();
   }
-
-  // Geração dos Triângulos
+  // Generate triangles for mesh
   std::vector<Triangle> triangles;
-  triangles.reserve((W - 1) * (H - 1) * 2);
-
-  for (int y = 0; y < H - 1; y++) {
-    for (int x = 0; x < W - 1; x++) {
-
-      int i0 = y * W + x;
+  triangles.reserve((newW - 1) * (newH - 1) * 2);
+  for (int y = 0; y < newH - 1; y++) {
+    for (int x = 0; x < newW - 1; x++) {
+      int i0 = y * newW + x;
       int i1 = i0 + 1;
-      int i2 = (y + 1) * W + x;
+      int i2 = (y + 1) * newW + x;
       int i3 = i2 + 1;
-
       triangles.push_back(
           {(unsigned int)i0, (unsigned int)i1, (unsigned int)i2});
-
       triangles.push_back(
           {(unsigned int)i1, (unsigned int)i3, (unsigned int)i2});
     }
@@ -436,6 +502,8 @@ Mesh *Renderer::CreateHeightmapMesh(const std::string &path,
   data.vertices = std::move(vertices);
   data.triangles = std::move(triangles);
   mesh->Build(data);
+
+  mGroundMesh = mesh;
 
   return mesh;
 }

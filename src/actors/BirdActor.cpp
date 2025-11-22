@@ -58,11 +58,18 @@ void BirdActor::OnUpdate(float deltaTime) {
   // Behaviour
   if (mType == Leader) {
     // Orbit the origin
-    mRigidBody->SetVelocity(
+    Vector3 desiredVel =
         Vector3::Normalize(Vector3(
-            -mPosition.z, std::round(Math::Sin(mPosition.x * 0.1f)) * 10.0f,
+            -mPosition.z, std::round(Math::Sin(mPosition.x * 0.1f)) * 50.0f,
             mPosition.x)) *
-        10.0f);
+        10.0f;
+
+    // Prevent getting too high
+    if (mPosition.y > 450.0f) {
+      desiredVel.y = Math::Min(desiredVel.y, -20.0f);
+    }
+
+    mRigidBody->SetVelocity(desiredVel);
 
   } else {
     BirdActor *leader = mScene->GetLeader();
@@ -70,7 +77,7 @@ void BirdActor::OnUpdate(float deltaTime) {
     toLeader.Normalize();
     Vector3 desiredToLeader = toLeader * 50.0f;
 
-    const float neighborRadius = 30.0f;
+    const float neighborRadius = 50.0f;
     Vector3 avgVelocity = Vector3::Zero;
     Vector3 flockCenter = Vector3::Zero;
     int neighborCount = 0;
@@ -112,7 +119,7 @@ void BirdActor::OnUpdate(float deltaTime) {
       if (otherBird != nullptr && otherBird != this) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
-        if (distSq < 20.0f) {
+        if (distSq < 30.0f) {
           Vector3 repulsion =
               -10.0f * toOther * (1.0f / std::max(distSq, 0.0001f));
           if (repulsion.LengthSq() > 0.1f) {
@@ -123,21 +130,48 @@ void BirdActor::OnUpdate(float deltaTime) {
     }
   }
 
+  // Terrain avoidance
+  float height = mScene->GetRenderer()->GetHeightAt(mPosition.x, mPosition.z);
+  const float margin = 10.0f;
+  if (mPosition.y < height + margin) {
+    Vector3 normal =
+        mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
+    float distance = height + margin - mPosition.y;
+    Vector3 force = normal * 50.0f * distance;
+    mRigidBody->ApplyForce(force);
+  }
+
+  // Anticipate terrain ahead
+  Vector3 vel = mRigidBody->GetVelocity();
+  if (vel.LengthSq() > 0.1f) {
+    Vector3 aheadVel = vel;
+    aheadVel.Normalize();
+    Vector3 ahead = mPosition + aheadVel * 5.0f;
+    float heightAhead = mScene->GetRenderer()->GetHeightAt(ahead.x, ahead.z);
+    if (heightAhead > mPosition.y + 2.0f) {
+      Vector3 normal =
+          mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
+      Vector3 force = normal * 100.0f;
+      mRigidBody->ApplyForce(force);
+    }
+  }
+
   // Rotation
   Vector3 velocity = mRigidBody->GetVelocity();
-  if (velocity.LengthSq() > 0.5f) {
+  if (velocity.LengthSq() > 0.1f) {
     velocity.Normalize();
-    float pitch = -Math::ASin(-velocity.y);
+    float pitch = -Math::ASin(velocity.y);
     float yaw = Math::Atan2(velocity.x, velocity.z);
     float deltaYaw = yaw - mPrevYaw;
     mPrevYaw = yaw;
-    float roll = Math::Clamp(deltaYaw, -Math::Pi, Math::Pi);
+    float roll =
+        -Math::Clamp(deltaYaw / deltaTime, -Math::Pi / 4.0f, Math::Pi / 4.0f);
     SetRotation(Quaternion::Concatenate(
-        Quaternion::Concatenate(
-            Quaternion(Vector3::UnitY, yaw),
+        Quaternion::Concatenate(Quaternion(Vector3::UnitZ, roll),
+                                Quaternion(Vector3::UnitX, pitch)),
+        Quaternion(Vector3::UnitY, yaw)));
 
-            Quaternion(Vector3::Normalize(velocity), pitch)),
-
-        Quaternion(Vector3::UnitZ, -roll)));
+    //        Quaternion::Concatenate(Quaternion(Vector3::UnitY, yaw), ),
+    //  ));
   }
 }

@@ -44,7 +44,9 @@ void RigidBodyComponent::Update(float deltaTime) {
   }
 
   // Update owner actor's position
-  mOwner->SetPosition(mOwner->GetPosition() + mVelocity * deltaTime);
+  Vector3 newPos = mOwner->GetPosition() + mVelocity * deltaTime;
+
+  mOwner->SetPosition(newPos);
 
   // Reset acceleration for next frame
   mAcceleration = Vector3::Zero;

@@ -47,6 +47,10 @@ public:
   }
   CameraMode GetCameraMode() const { return mCameraMode; }
 
+  float GetHeightmapOffset() const { return mHeightmapOffset; }
+  float GetHeightmapScale() const { return mHeightmapScale; }
+  float GetHeightmapHeightScale() const { return mHeightmapHeightScale; }
+
   void SetCameraRotation(const Quaternion rotation) {
     mCameraForward = Vector3::Transform(Vector3::UnitZ, rotation);
     mCameraUp = Vector3::Transform(Vector3::UnitY, rotation);
@@ -96,6 +100,11 @@ private:
 
   // Other birds
   std::vector<class BirdActor *> mBirds;
+
+  // Heightmap parameters
+  float mHeightmapOffset;
+  float mHeightmapScale;
+  float mHeightmapHeightScale;
 };
 
 #endif

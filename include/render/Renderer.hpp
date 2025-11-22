@@ -21,9 +21,11 @@ public:
   // Mesh management
   Mesh *LoadMesh(const std::string &meshName);
 
-  Mesh* CreateHeightmapMesh(const std::string& path,
-                          float heightScale);
+  Mesh *CreateHeightmapMesh(const std::string &path, float offset, float scale,
+                            float heightScale);
 
+  float GetHeightAt(float x, float z);
+  Vector3 GetNormalAt(float x, float z);
 
   // Instanced drawing - draw multiple instances of the same mesh
   void DrawMeshesInstanced(const std::vector<MeshComponent *> &meshes,
@@ -40,6 +42,7 @@ public:
   void SetViewMatrix(const Matrix4 &view);
   void SetProjectionMatrix(const Matrix4 &projection);
   void SetCameraPos(const Vector3 &pos);
+  void SetDownsampleFactor(int factor);
 
   void Clear();
   void Present();
@@ -57,6 +60,16 @@ private:
 
   // Meshes
   std::unordered_map<std::string, Mesh *> mMeshCache;
+  Mesh *mGroundMesh;
 
   Vector3 lightDir;
+
+  // Heightmap data
+  std::vector<float> mHeightmapData;
+  int mHeightmapWidth;
+  int mHeightmapHeight;
+  float mHeightmapOffset;
+  float mHeightmapScale;
+  float mHeightmapHeightScale;
+  int mDownsampleFactor;
 };
