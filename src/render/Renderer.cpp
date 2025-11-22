@@ -47,9 +47,7 @@ bool Renderer::Initialize(float width, float height) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // Set default projection matrix based on framebuffer size (perspective)
-  float fov = Math::ToRadians(60.0f);
-  mScreenWidth = width;
-  mScreenHeight = height;
+  float fov = Math::ToRadians(40.0f);
   mProjectionMatrix =
       Matrix4::CreatePerspectiveFOV(fov, width, height, 0.1f, 1500.0f);
 
@@ -203,14 +201,6 @@ void Renderer::SetProjectionMatrix(const Matrix4 &projection) {
 void Renderer::SetCameraPos(const Vector3 &pos) { mCameraPos = pos; }
 
 void Renderer::SetDownsampleFactor(int factor) { mDownsampleFactor = factor; }
-
-void Renderer::SetFOV(float fov) {
-  mProjectionMatrix = Matrix4::CreatePerspectiveFOV(fov, mScreenWidth, mScreenHeight, 0.1f, 1500.0f);
-}
-
-float Renderer::GetScreenWidth() const { return mScreenWidth; }
-
-float Renderer::GetScreenHeight() const { return mScreenHeight; }
 
 void Renderer::Present() {
   // Buffer swapping is now handled by SDL in main.cpp

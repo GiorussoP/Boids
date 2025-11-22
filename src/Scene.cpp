@@ -87,7 +87,7 @@ bool Scene::Initialize() {
   }
 
   // Set initial projection matrix
-  float fov = Math::ToRadians(60.0f);
+  float fov = Math::ToRadians(40.0f);
   Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
       fov, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
       0.1f, 1500.0f);
@@ -114,7 +114,7 @@ void Scene::InitializeActors() {
 
   new TowerActor(this);
 
-  new OceanActor(this);  // Add ocean plane
+  new OceanActor(this); // Add ocean plane
 
   mLeader = new BirdActor(this, BirdType::Leader);
   mLeader->SetPosition(Vector3(60.0f, 350.0f, 0.0f));
@@ -226,7 +226,7 @@ void Scene::ProcessInput() {
         // Handle window resize
         glViewport(0, 0, event.window.data1, event.window.data2);
 
-        float fov = Math::ToRadians(60.0f);
+        float fov = Math::ToRadians(40.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
             fov, static_cast<float>(event.window.data1),
             static_cast<float>(event.window.data2), 0.1f, 1500.0f);

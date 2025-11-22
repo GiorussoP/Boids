@@ -30,9 +30,11 @@ void main()
 
 
     vec3 surfaceColor;
+    float mult = smoothstep(1.0, 1.4, fragPosition.y / 300.0);
+    vec3 rockColor = (1.0-mult) * vec3(0.6, 0.6, 0.7) + mult * vec3(0.5, 0.7, 1.0);
     if(uIsGround) {
     
-        surfaceColor = dot(fragNormal, vec3(0.0, 1.0, 0.0)) > 0.6 ? fragPosition.y < 250.0 ? vec3(0.3, 0.7, 0.3) : vec3(1.0, 1.0, 1.0) : vec3(0.6, 0.6, 0.7);
+        surfaceColor = dot(fragNormal, vec3(0.0, 1.0, 0.0)) > 0.6 ? fragPosition.y < 275.0 ? vec3(0.3, 0.7, 0.3) : vec3(1.0, 1.0, 1.0) : rockColor;
     
     }
     else {

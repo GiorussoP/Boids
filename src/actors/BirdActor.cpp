@@ -169,7 +169,7 @@ void BirdActor::OnUpdate(float deltaTime) {
         deltaTime * (2000.f / Math::Clamp(Vector2(mRigidBody->GetVelocity().x,
                                                   mRigidBody->GetVelocity().z)
                                               .LengthSq(),
-                                          80.0f, 115.0f));
+                                          80.0f, 100.0f));
     float wingAngle = Math::Sin(mflapTimer) * Math::ToRadians(45.0f);
 
     mLeftWing->SetRotation(
