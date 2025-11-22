@@ -269,6 +269,8 @@ void Renderer::ActivateMeshShader() {
   mMeshShader->SetVectorUniform("uLightColor", Vector3(1.0f, 1.0f, 1.0f));
   mMeshShader->SetVectorUniform("uAmbientColor", Vector3(0.2f, 0.2f, 0.2f));
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
+  mMeshShader->SetVectorUniform("uFogColor", Vector3(0.53f, 0.81f, 0.92f));
+  mMeshShader->SetFloatUniform("uFogDensity", 0.005f);
 }
 
 void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,

@@ -128,31 +128,31 @@ void BirdActor::OnUpdate(float deltaTime) {
         }
       }
     }
-  }
 
-  // Terrain avoidance
-  float height = mScene->GetRenderer()->GetHeightAt(mPosition.x, mPosition.z);
-  const float margin = 10.0f;
-  if (mPosition.y < height + margin) {
-    Vector3 normal =
-        mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
-    float distance = height + margin - mPosition.y;
-    Vector3 force = normal * 50.0f * distance;
-    mRigidBody->ApplyForce(force);
-  }
-
-  // Anticipate terrain ahead
-  Vector3 vel = mRigidBody->GetVelocity();
-  if (vel.LengthSq() > 0.1f) {
-    Vector3 aheadVel = vel;
-    aheadVel.Normalize();
-    Vector3 ahead = mPosition + aheadVel * 5.0f;
-    float heightAhead = mScene->GetRenderer()->GetHeightAt(ahead.x, ahead.z);
-    if (heightAhead > mPosition.y + 2.0f) {
+    // Terrain avoidance
+    float height = mScene->GetRenderer()->GetHeightAt(mPosition.x, mPosition.z);
+    const float margin = 10.0f;
+    if (mPosition.y < height + margin) {
       Vector3 normal =
           mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
-      Vector3 force = normal * 100.0f;
+      float distance = height + margin - mPosition.y;
+      Vector3 force = normal * 50.0f * distance;
       mRigidBody->ApplyForce(force);
+    }
+
+    // Anticipate terrain ahead
+    Vector3 vel = mRigidBody->GetVelocity();
+    if (vel.LengthSq() > 0.1f) {
+      Vector3 aheadVel = vel;
+      aheadVel.Normalize();
+      Vector3 ahead = mPosition + aheadVel * 5.0f;
+      float heightAhead = mScene->GetRenderer()->GetHeightAt(ahead.x, ahead.z);
+      if (heightAhead > mPosition.y + 2.0f) {
+        Vector3 normal =
+            mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
+        Vector3 force = normal * 100.0f;
+        mRigidBody->ApplyForce(force);
+      }
     }
   }
 
