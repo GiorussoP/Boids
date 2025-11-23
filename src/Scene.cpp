@@ -289,6 +289,10 @@ void Scene::ProcessInput() {
   for (auto &actor : mActors) {
     actor->ProcessInput();
   }
+
+  if (Input::WasKeyPressed(SDL_SCANCODE_P)) {
+    mIsPaused = !mIsPaused;
+  } 
 }
 
 void Scene::UpdateActors(float deltaTime) {
@@ -336,10 +340,10 @@ void Scene::UpdateActors(float deltaTime) {
 }
 
 void Scene::UpdateScene(float deltaTime) {
-  UpdateActors(deltaTime);
-
-  // Check collisions after all actors have been updated
-  CheckCollisions();
+    if (!mIsPaused) {
+        UpdateActors(deltaTime);
+        CheckCollisions();
+    }
 }
 
 void Scene::CheckCollisions() {
