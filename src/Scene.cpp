@@ -25,8 +25,8 @@ Scene::Scene()
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
       mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
       mCameraMode(CameraMode::FollowBoid), mFlockCenter(Vector3::Zero),
-      mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true), 
-      mIsDebugging(false),mIsWireframe(false), mStepRequested(false),
+      mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true),
+      mIsDebugging(false), mIsWireframe(false), mStepRequested(false),
       mIsPaused(false), mCameraController(nullptr), mLeader(nullptr) {}
 
 bool Scene::Initialize() {
@@ -152,6 +152,9 @@ void Scene::RunLoop() {
       if (mIsDebugging) {
         UpdateScene(deltaTime);
       }
+      if (mCameraMode == CameraMode::Free && mCameraController) {
+        mCameraController->Update(deltaTime);
+      }
     }
 
     GenerateOutput();
@@ -255,7 +258,6 @@ void Scene::ProcessInput() {
   Input::Update();
 
   if (Input::WasKeyPressed(SDL_SCANCODE_C)) {
-    // Cycle through camera modes
     mCameraMode =
         static_cast<CameraMode>((static_cast<int>(mCameraMode) + 1) % 4);
   }
@@ -286,12 +288,12 @@ void Scene::ProcessInput() {
   }
 
   if (Input::WasKeyPressed(SDL_SCANCODE_F2)) {
-      mIsWireframe = !mIsWireframe;
-      if (mIsWireframe) {
-          std::cout << "Wireframe ON" << std::endl;
-      } else {
-          std::cout << "Wireframe OFF" << std::endl;
-      }
+    mIsWireframe = !mIsWireframe;
+    if (mIsWireframe) {
+      std::cout << "Wireframe ON" << std::endl;
+    } else {
+      std::cout << "Wireframe OFF" << std::endl;
+    }
   }
 
   if (mIsDebugging && Input::WasKeyPressed(SDL_SCANCODE_N)) {
@@ -322,7 +324,7 @@ void Scene::ProcessInput() {
 
   if (Input::WasKeyPressed(SDL_SCANCODE_P)) {
     mIsPaused = !mIsPaused;
-  } 
+  }
 }
 
 void Scene::UpdateActors(float deltaTime) {
@@ -372,16 +374,19 @@ void Scene::UpdateActors(float deltaTime) {
 void Scene::UpdateScene(float deltaTime) {
 
   if (mIsDebugging) {
-      if (!mStepRequested) {
-          return;
+    if (!mStepRequested) {
+      if (mCameraMode == CameraMode::Free && mCameraController) {
+        mCameraController->Update(deltaTime);
       }
+      return;
+    }
 
-      mStepRequested = false;
-      PrintDebugInfo();
+    mStepRequested = false;
+    PrintDebugInfo();
   }
 
   if (mIsPaused && !mIsDebugging) {
-      return;
+    return;
   }
 
   UpdateActors(deltaTime);
@@ -441,7 +446,8 @@ void Scene::GenerateOutput() {
   mRenderer->SetViewMatrix(
       Matrix4::CreateLookAt(mCameraPos, targetPos, mCameraUp));
   mRenderer->SetCameraPos(mCameraPos);
-  RendererMode mode = mIsWireframe ? RendererMode::LINES : RendererMode::TRIANGLES;
+  RendererMode mode =
+      mIsWireframe ? RendererMode::LINES : RendererMode::TRIANGLES;
   // Get visible actors from chunk grid
   // std::vector<Actor*> mActiveActors =
   // mChunkGrid->GetVisibleActors(mCameraPos);
@@ -481,42 +487,31 @@ void Scene::GenerateOutput() {
 }
 
 void Scene::PrintDebugInfo() {
-    std::cout << "\n DEBUG FRAME\n";
+  std::cout << "\n DEBUG FRAME\n";
 
-    // Center and mean velocity of Boids
-    std::cout << "Flock center: ("
-              << mFlockCenter.x << ", "
-              << mFlockCenter.y << ", "
-              << mFlockCenter.z << ")\n";
+  // Center and mean velocity of Boids
+  std::cout << "Flock center: (" << mFlockCenter.x << ", " << mFlockCenter.y
+            << ", " << mFlockCenter.z << ")\n";
 
-    std::cout << "Flock velocity: ("
-              << mFlockVelocity.x << ", "
-              << mFlockVelocity.y << ", "
-              << mFlockVelocity.z << ")\n\n";
+  std::cout << "Flock velocity: (" << mFlockVelocity.x << ", "
+            << mFlockVelocity.y << ", " << mFlockVelocity.z << ")\n\n";
 
-    // For each Boid
-    int index = 1;
-    for (BirdActor* b : mBirds) {
-        Vector3 pos = b->GetPosition();
-        Quaternion rot = b->GetRotation();
-        auto rb = b->GetComponent<RigidBodyComponent>();
-        Vector3 vel = rb ? rb->GetVelocity() : Vector3::Zero;
+  // For each Boid
+  int index = 1;
+  for (BirdActor *b : mBirds) {
+    Vector3 pos = b->GetPosition();
+    Quaternion rot = b->GetRotation();
+    auto rb = b->GetComponent<RigidBodyComponent>();
+    Vector3 vel = rb ? rb->GetVelocity() : Vector3::Zero;
 
-        std::cout << "Bird " << index++ << ":\n";
-        std::cout << "  pos = ("
-                  << pos.x << ", "
-                  << pos.y << ", "
-                  << pos.z << ")\n";
-        std::cout << "  rot = ("
-                  << rot.x << ", "
-                  << rot.y << ", "
-                  << rot.z << ", "
-                  << rot.w << ")\n";
-        std::cout << "  vel = ("
-                  << vel.x << ", "
-                  << vel.y << ", "
-                  << vel.z << ")\n\n";
-    }
+    std::cout << "Bird " << index++ << ":\n";
+    std::cout << "  pos = (" << pos.x << ", " << pos.y << ", " << pos.z
+              << ")\n";
+    std::cout << "  rot = (" << rot.x << ", " << rot.y << ", " << rot.z << ", "
+              << rot.w << ")\n";
+    std::cout << "  vel = (" << vel.x << ", " << vel.y << ", " << vel.z
+              << ")\n\n";
+  }
 
-    std::cout << "====================\n" << std::endl;
+  std::cout << "====================\n" << std::endl;
 }

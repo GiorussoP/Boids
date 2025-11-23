@@ -70,7 +70,7 @@ bool Renderer::Initialize(float width, float height) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // Set the clear color to sky blue
-  glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+  glClearColor(1.0f, 0.7785f, 0.4848f, 1.0f);
 
   // Enable depth testing
   glEnable(GL_DEPTH_TEST);
@@ -455,7 +455,7 @@ void Renderer::ActivateMeshShader() {
   mMeshShader->SetVectorUniform("uLightColor", Vector3(1.65f, 1.45f, 0.8f));
   mMeshShader->SetVectorUniform("uAmbientColor", Vector3(0.2f, 0.2f, 0.2f));
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
-  mMeshShader->SetVectorUniform("uFogColor", Vector3(0.53f, 0.81f, 0.92f));
+  mMeshShader->SetVectorUniform("uFogColor", Vector3(1.0f, 0.7785f, 0.4848f));
   mMeshShader->SetFloatUniform("uFogDensity", 0.007f);
 
   // Bind shadow map
