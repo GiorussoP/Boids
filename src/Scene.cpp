@@ -224,12 +224,13 @@ void Scene::ProcessInput() {
     case SDL_WINDOWEVENT:
       if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
         // Handle window resize
-        glViewport(0, 0, event.window.data1, event.window.data2);
+        mRenderer->SetScreenSize(static_cast<float>(event.window.data1),
+                                 static_cast<float>(event.window.data2));
 
         float fov = Math::ToRadians(40.0f);
         Matrix4 perspectiveProjection = Matrix4::CreatePerspectiveFOV(
-            fov, static_cast<float>(event.window.data1),
-            static_cast<float>(event.window.data2), 0.1f, 1500.0f);
+            fov, mRenderer->GetScreenWidth(), mRenderer->GetScreenHeight(),
+            0.1f, 1500.0f);
         mRenderer->SetProjectionMatrix(perspectiveProjection);
       }
       break;
@@ -416,6 +417,8 @@ void Scene::GenerateOutput() {
   }
 
   // Render meshes with instancing (batch draw)
+  mRenderer->RenderShadows(activeMeshes);
+  glViewport(0, 0, mRenderer->GetScreenWidth(), mRenderer->GetScreenHeight());
   mRenderer->ActivateMeshShader();
   mRenderer->DrawMeshesInstanced(activeMeshes, mode);
 

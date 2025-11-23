@@ -37,7 +37,7 @@ public:
   // Batch rendering - set frame-level uniforms once before drawing multiple
 
   void ActivateMeshShader();
-  void ActivateShadowShader() {};
+  void ActivateShadowShader();
 
   void SetViewMatrix(const Matrix4 &view);
   void SetProjectionMatrix(const Matrix4 &projection);
@@ -46,9 +46,13 @@ public:
   void SetFOV(float fov);
   float GetScreenWidth() const;
   float GetScreenHeight() const;
+  void SetScreenSize(float width, float height);
 
   void Clear();
   void Present();
+
+  // Shadow rendering
+  void RenderShadows(const std::vector<MeshComponent *> &meshes);
 
 private:
   bool LoadShaders();
@@ -62,10 +66,16 @@ private:
 
   // Shaders
   Shader *mMeshShader;
+  Shader *mShadowShader;
 
   // Meshes
   std::unordered_map<std::string, Mesh *> mMeshCache;
   Mesh *mGroundMesh;
+
+  // Shadow mapping
+  GLuint mShadowFBO;
+  GLuint mShadowMap;
+  const int SHADOW_MAP_SIZE = 6144;
 
   Vector3 lightDir;
 

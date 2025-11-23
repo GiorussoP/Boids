@@ -11,9 +11,9 @@
 
 Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
-      mMeshShader(nullptr), mGroundMesh(nullptr),
-      lightDir(Vector3::Normalize(Vector3(-1.0f, -1.0f, 1.0f))),
-      mDownsampleFactor(8) {}
+      mMeshShader(nullptr), mShadowShader(nullptr), mGroundMesh(nullptr),
+      lightDir(Vector3::Normalize(Vector3(-1.5f, -0.5f, 0.5f))), mShadowFBO(0),
+      mShadowMap(0), mDownsampleFactor(8) {}
 
 Renderer::~Renderer() {
 
@@ -21,6 +21,18 @@ Renderer::~Renderer() {
   if (mMeshShader) {
     delete mMeshShader;
     mMeshShader = nullptr;
+  }
+  if (mShadowShader) {
+    delete mShadowShader;
+    mShadowShader = nullptr;
+  }
+
+  // Delete shadow map
+  if (mShadowFBO) {
+    glDeleteFramebuffers(1, &mShadowFBO);
+  }
+  if (mShadowMap) {
+    glDeleteTextures(1, &mShadowMap);
   }
 }
 
@@ -30,6 +42,32 @@ bool Renderer::Initialize(float width, float height) {
     std::cerr << "Failed to load shaders." << std::endl;
     return false;
   }
+
+  // Create shadow map
+  glGenFramebuffers(1, &mShadowFBO);
+  glGenTextures(1, &mShadowMap);
+  glBindTexture(GL_TEXTURE_2D, mShadowMap);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, SHADOW_MAP_SIZE,
+               SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, mShadowFBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         mShadowMap, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "Shadow framebuffer not complete!" << std::endl;
+    return false;
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // Set the clear color to sky blue
   glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
@@ -51,6 +89,9 @@ bool Renderer::Initialize(float width, float height) {
   mProjectionMatrix =
       Matrix4::CreatePerspectiveFOV(fov, width, height, 0.1f, 1500.0f);
 
+  mScreenWidth = width;
+  mScreenHeight = height;
+
   // Activate mesh shader
   if (mMeshShader) {
     mMeshShader->SetActive();
@@ -63,6 +104,9 @@ void Renderer::Shutdown() {
   // Unload shaders
   if (mMeshShader) {
     mMeshShader->Unload();
+  }
+  if (mShadowShader) {
+    mShadowShader->Unload();
   }
 
   // Delete all cached meshes
@@ -200,7 +244,15 @@ void Renderer::SetProjectionMatrix(const Matrix4 &projection) {
 
 void Renderer::SetCameraPos(const Vector3 &pos) { mCameraPos = pos; }
 
-void Renderer::SetDownsampleFactor(int factor) { mDownsampleFactor = factor; }
+void Renderer::SetScreenSize(float width, float height) {
+  mScreenWidth = width;
+  mScreenHeight = height;
+  glViewport(0, 0, width, height);
+}
+
+float Renderer::GetScreenWidth() const { return mScreenWidth; }
+
+float Renderer::GetScreenHeight() const { return mScreenHeight; }
 
 void Renderer::Present() {
   // Buffer swapping is now handled by SDL in main.cpp
@@ -214,6 +266,15 @@ bool Renderer::LoadShaders() {
                          "./assets/shaders/Base.frag")) {
     delete mMeshShader;
     mMeshShader = nullptr;
+    return false;
+  }
+
+  // Create shadow shader
+  mShadowShader = new Shader();
+  if (!mShadowShader->Load("./assets/shaders/Shadow.vert",
+                           "./assets/shaders/Shadow.frag")) {
+    delete mShadowShader;
+    mShadowShader = nullptr;
     return false;
   }
 
@@ -253,6 +314,131 @@ Mesh *Renderer::LoadMesh(const std::string &meshName) {
   return mesh;
 }
 
+void Renderer::RenderShadows(const std::vector<MeshComponent *> &meshes) {
+  if (meshes.empty() || !mShadowShader) {
+    return;
+  }
+
+  // Bind shadow framebuffer
+  glBindFramebuffer(GL_FRAMEBUFFER, mShadowFBO);
+  glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  // Disable color writes
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+  // Set light view and projection
+  Vector3 lightPos = lightDir * -1000.0f;     // Position behind the scene
+  Vector3 target = Vector3(0.0f, 0.0f, 0.0f); // Center of scene
+  Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
+  Matrix4 lightView = Matrix4::CreateLookAt(lightPos, target, up);
+  Matrix4 lightProj =
+      Matrix4::CreateOrtho(-500.0f, 500.0f, -500.0f, 500.0f, 0.1f, 2000.0f);
+  Matrix4 lightViewProj = lightView * lightProj;
+
+  // Activate shadow shader
+  ActivateShadowShader();
+  mShadowShader->SetMatrixUniform("uLightViewProjection", lightViewProj);
+
+  // Group meshes by mesh pointer
+  struct MeshGroup {
+    Mesh *mesh;
+    std::vector<MeshComponent *> components;
+  };
+
+  std::vector<MeshGroup> groups;
+
+  for (auto *meshComp : meshes) {
+    if (!meshComp->IsVisible())
+      continue;
+
+    Mesh *mesh = &meshComp->GetMesh();
+
+    bool found = false;
+    for (auto &group : groups) {
+      if (group.mesh == mesh) {
+        group.components.push_back(meshComp);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      groups.push_back({mesh, {meshComp}});
+    }
+  }
+
+  // Draw each group
+  for (auto &group : groups) {
+    if (group.components.empty())
+      continue;
+
+    if (group.mesh->GetMaxInstances() == 0) {
+      group.mesh->SetupInstanceBuffer(10000);
+    }
+
+    std::vector<float> instanceData;
+    instanceData.reserve(group.components.size() *
+                         35); // 35 floats per instance
+
+    for (auto *meshComp : group.components) {
+      Vector3 position =
+          meshComp->GetOwner()->GetPosition() +
+          Vector3::Transform(meshComp->GetOffset() *
+                                 meshComp->GetOwner()->GetScale(),
+                             meshComp->GetOwner()->GetRotation());
+      Vector3 size = meshComp->GetOwner()->GetScale() * meshComp->GetScale();
+      Quaternion rotation = Quaternion::Concatenate(
+          meshComp->GetRotation(), meshComp->GetOwner()->GetRotation());
+
+      Matrix4 model = Matrix4::CreateScale(size) *
+                      Matrix4::CreateFromQuaternion(rotation) *
+                      Matrix4::CreateTranslation(position);
+
+      // Add model matrix (16 floats)
+      for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 4; col++) {
+          instanceData.push_back(model.mat[row][col]);
+        }
+      }
+
+      // Add normal matrix (identity, 16 floats)
+      Matrix4 normalMatrix = Matrix4::Identity;
+      for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 4; col++) {
+          instanceData.push_back(normalMatrix.mat[row][col]);
+        }
+      }
+
+      // Add color (0,0,0, 3 floats)
+      instanceData.push_back(0.0f);
+      instanceData.push_back(0.0f);
+      instanceData.push_back(0.0f);
+    }
+
+    group.mesh->UpdateInstanceBuffer(instanceData, group.components.size());
+
+    group.mesh->SetActive();
+
+    glDrawElementsInstanced(GL_TRIANGLES, group.mesh->GetNumIndices(),
+                            GL_UNSIGNED_INT, nullptr, group.components.size());
+  }
+
+  // Restore state
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  // Restore viewport later in main render
+}
+
+void Renderer::ActivateShadowShader() {
+  if (!mShadowShader) {
+    std::cerr << "Shadow shader not loaded" << std::endl;
+    return;
+  }
+
+  mShadowShader->SetActive();
+}
+
 void Renderer::ActivateMeshShader() {
   if (!mMeshShader) {
     std::cerr << "Mesh shader not loaded" << std::endl;
@@ -271,6 +457,21 @@ void Renderer::ActivateMeshShader() {
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
   mMeshShader->SetVectorUniform("uFogColor", Vector3(0.53f, 0.81f, 0.92f));
   mMeshShader->SetFloatUniform("uFogDensity", 0.007f);
+
+  // Bind shadow map
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, mShadowMap);
+  mMeshShader->SetIntegerUniform("uShadowMap", 0);
+
+  // Set light view-projection for shadow mapping
+  Vector3 lightPos = lightDir * -1000.0f;
+  Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
+  Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
+  Matrix4 lightView = Matrix4::CreateLookAt(lightPos, target, up);
+  Matrix4 lightProj =
+      Matrix4::CreateOrtho(-500.0f, 500.0f, -500.0f, 500.0f, 0.1f, 2000.0f);
+  Matrix4 lightViewProj = lightView * lightProj;
+  mMeshShader->SetMatrixUniform("uLightViewProjection", lightViewProj);
 }
 
 void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,

@@ -14,11 +14,13 @@ layout(location = 12) in vec3 inInstanceColor;     // Location 12
 uniform mat4 uViewProjection;
 uniform mat4 uView;
 uniform vec3 uCameraPos;
+uniform mat4 uLightViewProjection;
 
 out vec3 fragNormal;
 out vec3 fragColor;
 out vec3 fragPosition;
 out vec2 fragTexCoord;
+out vec4 fragShadowCoord;
 
 void main()
 {
@@ -34,4 +36,7 @@ void main()
     
     // Pass instance color
     fragColor = inInstanceColor;
+
+    // Compute shadow coordinate
+    fragShadowCoord = uLightViewProjection * inInstanceModel * vec4(inPosition, 1.0);
 }
