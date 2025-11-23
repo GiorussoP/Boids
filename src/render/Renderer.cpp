@@ -452,7 +452,7 @@ void Renderer::ActivateMeshShader() {
   Matrix4 viewProj = mViewMatrix * mProjectionMatrix;
   mMeshShader->SetMatrixUniform("uViewProjection", viewProj);
   mMeshShader->SetVectorUniform("uLightDir", lightDir);
-  mMeshShader->SetVectorUniform("uLightColor", Vector3(1.0f, 1.0f, 1.0f));
+  mMeshShader->SetVectorUniform("uLightColor", Vector3(1.65f, 1.45f, 0.8f));
   mMeshShader->SetVectorUniform("uAmbientColor", Vector3(0.2f, 0.2f, 0.2f));
   mMeshShader->SetVectorUniform("uCameraPos", mCameraPos);
   mMeshShader->SetVectorUniform("uFogColor", Vector3(0.53f, 0.81f, 0.92f));
