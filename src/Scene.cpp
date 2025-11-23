@@ -25,8 +25,9 @@ Scene::Scene()
       mRenderer(nullptr), mCameraPos(Vector3(0.0f, 10.0f, 0.0f)),
       mCameraForward(0.0f, -1.0f, 0.0f), mCameraUp(0.0f, 1.0f, 0.0f),
       mCameraMode(CameraMode::FollowBoid), mFlockCenter(Vector3::Zero),
-      mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true),
-      mIsDebugging(false), mCameraController(nullptr), mLeader(nullptr) {}
+      mFlockVelocity(Vector3::Zero), mTicksCount(0), mIsRunning(true), 
+      mIsDebugging(false),mIsWireframe(false), mStepRequested(false),
+      mIsPaused(false), mCameraController(nullptr), mLeader(nullptr) {}
 
 bool Scene::Initialize() {
   // Initialize SDL
@@ -44,7 +45,7 @@ bool Scene::Initialize() {
 
   // Create window
   mWindow = SDL_CreateWindow(
-      "TP Final - Mellodica", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      "TP 1 - Boids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
       WINDOW_WIDTH, WINDOW_HEIGHT,
       SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
@@ -137,7 +138,21 @@ void Scene::RunLoop() {
 
     // Update scene with deltaTime
     ProcessInput();
-    UpdateScene(deltaTime);
+
+    bool shouldUpdate = true;
+    if (mIsPaused) {
+
+      shouldUpdate = false;
+    }
+
+    if (shouldUpdate) {
+      UpdateScene(deltaTime);
+    } else {
+
+      if (mIsDebugging) {
+        UpdateScene(deltaTime);
+      }
+    }
 
     GenerateOutput();
 
@@ -262,10 +277,25 @@ void Scene::ProcessInput() {
   }
 
   if (Input::WasKeyPressed(SDL_SCANCODE_F1)) {
-    mIsDebugging = !mIsDebugging;
 
+    mIsDebugging = !mIsDebugging;
+    mIsPaused = mIsDebugging;
+    mStepRequested = false;
     std::cout << "=== DEBUG MODE " << (mIsDebugging ? "ENABLED" : "DISABLED")
               << " ===" << std::endl;
+  }
+
+  if (Input::WasKeyPressed(SDL_SCANCODE_F2)) {
+      mIsWireframe = !mIsWireframe;
+      if (mIsWireframe) {
+          std::cout << "Wireframe ON" << std::endl;
+      } else {
+          std::cout << "Wireframe OFF" << std::endl;
+      }
+  }
+
+  if (mIsDebugging && Input::WasKeyPressed(SDL_SCANCODE_N)) {
+    mStepRequested = true;
   }
 
   if (Input::WasKeyPressed(SDL_SCANCODE_EQUALS)) {
@@ -340,10 +370,22 @@ void Scene::UpdateActors(float deltaTime) {
 }
 
 void Scene::UpdateScene(float deltaTime) {
-    if (!mIsPaused) {
-        UpdateActors(deltaTime);
-        CheckCollisions();
-    }
+
+  if (mIsDebugging) {
+      if (!mStepRequested) {
+          return;
+      }
+
+      mStepRequested = false;
+      PrintDebugInfo();
+  }
+
+  if (mIsPaused && !mIsDebugging) {
+      return;
+  }
+
+  UpdateActors(deltaTime);
+  CheckCollisions();
 }
 
 void Scene::CheckCollisions() {
@@ -399,9 +441,7 @@ void Scene::GenerateOutput() {
   mRenderer->SetViewMatrix(
       Matrix4::CreateLookAt(mCameraPos, targetPos, mCameraUp));
   mRenderer->SetCameraPos(mCameraPos);
-  RendererMode mode =
-      mIsDebugging ? RendererMode::LINES : RendererMode::TRIANGLES;
-
+  RendererMode mode = mIsWireframe ? RendererMode::LINES : RendererMode::TRIANGLES;
   // Get visible actors from chunk grid
   // std::vector<Actor*> mActiveActors =
   // mChunkGrid->GetVisibleActors(mCameraPos);
@@ -438,4 +478,45 @@ void Scene::GenerateOutput() {
   */
 
   SDL_GL_SwapWindow(mWindow);
+}
+
+void Scene::PrintDebugInfo() {
+    std::cout << "\n DEBUG FRAME\n";
+
+    // Center and mean velocity of Boids
+    std::cout << "Flock center: ("
+              << mFlockCenter.x << ", "
+              << mFlockCenter.y << ", "
+              << mFlockCenter.z << ")\n";
+
+    std::cout << "Flock velocity: ("
+              << mFlockVelocity.x << ", "
+              << mFlockVelocity.y << ", "
+              << mFlockVelocity.z << ")\n\n";
+
+    // For each Boid
+    int index = 1;
+    for (BirdActor* b : mBirds) {
+        Vector3 pos = b->GetPosition();
+        Quaternion rot = b->GetRotation();
+        auto rb = b->GetComponent<RigidBodyComponent>();
+        Vector3 vel = rb ? rb->GetVelocity() : Vector3::Zero;
+
+        std::cout << "Bird " << index++ << ":\n";
+        std::cout << "  pos = ("
+                  << pos.x << ", "
+                  << pos.y << ", "
+                  << pos.z << ")\n";
+        std::cout << "  rot = ("
+                  << rot.x << ", "
+                  << rot.y << ", "
+                  << rot.z << ", "
+                  << rot.w << ")\n";
+        std::cout << "  vel = ("
+                  << vel.x << ", "
+                  << vel.y << ", "
+                  << vel.z << ")\n\n";
+    }
+
+    std::cout << "====================\n" << std::endl;
 }

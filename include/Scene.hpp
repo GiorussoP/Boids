@@ -61,6 +61,7 @@ private:
   void UpdateScene(float deltaTime);
   void GenerateOutput();
   void CheckCollisions();
+  void PrintDebugInfo();
 
   // Track if we're updating actors right now
   bool mUpdatingActors;
@@ -90,6 +91,8 @@ private:
   Uint32 mTicksCount;
   bool mIsRunning;
   bool mIsDebugging;
+  bool mIsWireframe;
+  bool mStepRequested;
   bool mIsPaused;
 
   // Camera controller
