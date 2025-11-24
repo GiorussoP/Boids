@@ -10,7 +10,7 @@ TowerActor::TowerActor(Scene *scene) : Actor(scene) {
       new MeshComponent(this, *towerMesh, Vector3(0.0f, 0.0f, 0.0f));
   mMeshComponent->SetColor(Color::Red);
   SetScale(Vector3(100.0f, 600.0f, 100.0f));
-  SetPosition(Vector3(0.0f, 25.0f, 0.0f));
+  SetPosition(Vector3(40.0f, 25.0f, -90.0f));
 }
 
 void TowerActor::OnUpdate(float deltaTime) {

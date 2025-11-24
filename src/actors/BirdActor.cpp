@@ -44,16 +44,20 @@ BirdActor::BirdActor(Scene *scene, BirdType type)
 void BirdActor::OnUpdate(float deltaTime) {
   // Behaviour
   if (mType == Leader) {
-    // Orbit the origin
+    Vector3 center(40.0f, 0.0f, -90.0f);
+    Vector3 offset = mPosition - center;
     Vector3 desiredVel =
         Vector3::Normalize(Vector3(
-            -mPosition.z, std::round(Math::Sin(mPosition.x * 0.1f)) * 50.0f,
-            mPosition.x)) *
+            -offset.z, std::round(Math::Sin(offset.x * 0.1f)) * 55.0f - 7.0f,
+            offset.x)) *
         10.0f;
 
     // Prevent getting too high
     if (mPosition.y > 450.0f) {
       desiredVel.y = Math::Min(desiredVel.y, -20.0f);
+    }
+    if (mPosition.y < 225.0f) {
+      desiredVel.y = Math::Max(desiredVel.y, +20.0f);
     }
 
     mRigidBody->SetVelocity(desiredVel);
