@@ -144,13 +144,15 @@ void BirdActor::OnUpdate(float deltaTime) {
   }
 
   // Rotation
+
   Vector3 velocity = mRigidBody->GetVelocity();
+  velocity.Normalize();
+  float pitch = -Math::ASin(velocity.y);
+  float yaw = Math::Atan2(velocity.x, velocity.z);
+  float deltaYaw = yaw - mPrevYaw;
+  mPrevYaw = yaw;
   if (velocity.LengthSq() > 0.1f) {
-    velocity.Normalize();
-    float pitch = -Math::ASin(velocity.y);
-    float yaw = Math::Atan2(velocity.x, velocity.z);
-    float deltaYaw = yaw - mPrevYaw;
-    mPrevYaw = yaw;
+
     float roll =
         -Math::Clamp(deltaYaw / deltaTime, -Math::Pi / 4.0f, Math::Pi / 4.0f);
 
@@ -162,7 +164,11 @@ void BirdActor::OnUpdate(float deltaTime) {
     SetRotation(Quaternion::Slerp(mRotation, targetRotation,
                                   Math::Clamp(20.0f * deltaTime, 0.0f, 1.0f)));
   }
+
   // Animation
+  float turnAmmount = -Math::Clamp(deltaYaw / Math::Max(deltaTime, 0.0001f),
+                                   -Math::PiOver2 / 3.0f, Math::PiOver2 / 3.0f);
+
   if (mRigidBody->GetVelocity().y >= -8.0f) {
 
     mflapTimer +=
@@ -170,20 +176,28 @@ void BirdActor::OnUpdate(float deltaTime) {
                                                   mRigidBody->GetVelocity().z)
                                               .LengthSq(),
                                           80.0f, 100.0f));
+
     float wingAngle = Math::Sin(mflapTimer) * Math::ToRadians(45.0f);
 
     mLeftWing->SetRotation(
         Quaternion::Concatenate(Quaternion(Vector3::UnitZ, Math::PiOver2),
                                 Quaternion(Vector3::UnitZ, wingAngle)));
-    mLeftWing->SetOffset(Vector3(-1.0f, 1.0f * Math::Sin(-wingAngle), 0.0f));
+    mLeftWing->SetOffset(Vector3(-1.0f, Math::Sin(-wingAngle), 0.0f));
+
     mRightWing->SetRotation(
         Quaternion::Concatenate(Quaternion(Vector3::UnitZ, -Math::PiOver2),
                                 Quaternion(Vector3::UnitZ, -wingAngle)));
-    mRightWing->SetOffset(Vector3(1.0f, 1.0f * Math::Sin(-wingAngle), 0.0f));
+    mRightWing->SetOffset(Vector3(1.0f, Math::Sin(-wingAngle), 0.0f));
   } else {
-    mLeftWing->SetRotation(Quaternion(Vector3::UnitZ, Math::PiOver2));
-    mLeftWing->SetOffset(Vector3(-1.0f, 0.0f, 0.0f));
-    mRightWing->SetRotation(Quaternion(Vector3::UnitZ, -Math::PiOver2));
-    mRightWing->SetOffset(Vector3(1.0f, 0.0f, 0.0f));
+
+    mLeftWing->SetRotation(
+        Quaternion::Concatenate(Quaternion(Vector3::UnitZ, Math::PiOver2),
+                                Quaternion(Vector3::UnitZ, turnAmmount)));
+    mLeftWing->SetOffset(Vector3(-1.0f, Math::Sin(-turnAmmount), 0.0f));
+
+    mRightWing->SetRotation(
+        Quaternion::Concatenate(Quaternion(Vector3::UnitZ, -Math::PiOver2),
+                                Quaternion(Vector3::UnitZ, turnAmmount)));
+    mRightWing->SetOffset(Vector3(1.0f, Math::Sin(turnAmmount), 0.0f));
   }
 }
