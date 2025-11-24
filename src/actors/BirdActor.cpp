@@ -72,13 +72,13 @@ void BirdActor::OnUpdate(float deltaTime) {
     toLeader.Normalize();
     Vector3 desiredToLeader = toLeader * 50.0f;
 
-    const float neighborRadius = 50.0f;
+    const float neighborRadius = 30.0f;
     Vector3 avgVelocity = Vector3::Zero;
     Vector3 flockCenter = Vector3::Zero;
     int neighborCount = 0;
 
     for (auto otherBird : mScene->GetBirds()) {
-      if (otherBird != nullptr && otherBird != this && otherBird != leader) {
+      if (otherBird != nullptr && otherBird != this && otherBird) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
         if (distSq < neighborRadius * neighborRadius) {
@@ -97,15 +97,15 @@ void BirdActor::OnUpdate(float deltaTime) {
       toFlockCenter.Normalize();
       Vector3 desiredToCenter = toFlockCenter;
       desiredVelocity =
-          (desiredToLeader + avgVelocity + 0.5f * desiredToCenter) *
-          (1.0f / 3.0f);
+          (0.7f * desiredToLeader + avgVelocity + 1.0f * desiredToCenter) *
+          (1.0f / 2.7f);
     } else {
       desiredVelocity = desiredToLeader;
     }
 
     Vector3 steering = desiredVelocity - mRigidBody->GetVelocity();
     if (steering.LengthSq() > 0.1f) {
-      mRigidBody->ApplyForce(steering);
+      mRigidBody->ApplyForce(steering * 0.5f);
     }
 
     // Avoid crowding
@@ -139,12 +139,12 @@ void BirdActor::OnUpdate(float deltaTime) {
     if (vel.LengthSq() > 0.1f) {
       Vector3 aheadVel = vel;
       aheadVel.Normalize();
-      Vector3 ahead = mPosition + aheadVel * 5.0f;
+      Vector3 ahead = mPosition + aheadVel * 10.0f;
       float heightAhead = mScene->GetRenderer()->GetHeightAt(ahead.x, ahead.z);
-      if (heightAhead > mPosition.y + 2.0f) {
+      if (heightAhead > mPosition.y) {
         Vector3 normal =
             mScene->GetRenderer()->GetNormalAt(mPosition.x, mPosition.z);
-        Vector3 force = normal * 100.0f;
+        Vector3 force = normal * (100.0f / (mPosition.y - heightAhead + 0.1f));
         mRigidBody->ApplyForce(force);
       }
     }
@@ -176,7 +176,7 @@ void BirdActor::OnUpdate(float deltaTime) {
   float turnAmmount = -Math::Clamp(deltaYaw / Math::Max(deltaTime, 0.0001f),
                                    -Math::PiOver2 / 3.0f, Math::PiOver2 / 3.0f);
 
-  if (mRigidBody->GetVelocity().y >= -8.0f) {
+  if (mRigidBody->GetVelocity().y >= -6.0f) {
 
     mflapTimer +=
         deltaTime * (2000.f / Math::Clamp(Vector2(mRigidBody->GetVelocity().x,

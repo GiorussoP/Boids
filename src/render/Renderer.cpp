@@ -13,7 +13,7 @@ Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
       mMeshShader(nullptr), mShadowShader(nullptr), mSunShader(nullptr),
       mGroundMesh(nullptr),
-      lightDir(Vector3::Normalize(Vector3(-1.5f, -0.5f, 0.5f))), mShadowFBO(0),
+      lightDir(Vector3::Normalize(Vector3(-1.5f, -0.7f, 0.5f))), mShadowFBO(0),
       mShadowMap(0), mDownsampleFactor(8) {}
 
 Renderer::~Renderer() {

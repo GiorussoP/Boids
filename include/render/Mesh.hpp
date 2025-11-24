@@ -118,7 +118,7 @@ private:
 // Sun mesh class (icoSun)
 class SphereMesh : public Mesh {
 public:
-  SphereMesh(int subdivisions = 2);
+  SphereMesh(int subdivisions = 1);
   virtual ~SphereMesh() = default;
 
 private:

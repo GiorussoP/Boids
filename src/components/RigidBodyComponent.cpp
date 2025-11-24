@@ -2,7 +2,7 @@
 #include "ColliderComponent.hpp"
 
 const float GRAVITY = 2500.0f;
-const float MAX_SPEED = 750.0f;
+const float MAX_SPEED = 20.0f;
 
 RigidBodyComponent::RigidBodyComponent(Actor *owner, float mass, float friction,
                                        bool applyGravity, int updateOrder)
