@@ -128,7 +128,6 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
     if (birds.empty()) {
       break;
     }
-    SDL_Log("LALA");
 
     BirdActor *lastBird = birds.back();
     Vector3 birdPos = lastBird->GetPosition();
