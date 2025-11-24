@@ -53,11 +53,13 @@ void BirdActor::OnUpdate(float deltaTime) {
         10.0f;
 
     // Prevent getting too high
-    if (mPosition.y > 450.0f) {
-      desiredVel.y = Math::Min(desiredVel.y, -20.0f);
+    const float upperbound = 450.0f;
+    if (mPosition.y > upperbound) {
+      desiredVel.y = Math::Min(desiredVel.y, upperbound - mPosition.y);
     }
-    if (mPosition.y < 225.0f) {
-      desiredVel.y = Math::Max(desiredVel.y, +20.0f);
+    const float lowerbound = 225.0f;
+    if (mPosition.y < lowerbound) {
+      desiredVel.y = Math::Max(desiredVel.y, lowerbound - mPosition.y);
     }
 
     mRigidBody->SetVelocity(desiredVel);
@@ -179,7 +181,7 @@ void BirdActor::OnUpdate(float deltaTime) {
         deltaTime * (2000.f / Math::Clamp(Vector2(mRigidBody->GetVelocity().x,
                                                   mRigidBody->GetVelocity().z)
                                               .LengthSq(),
-                                          80.0f, 100.0f));
+                                          80.0f, 120.0f));
 
     float wingAngle = Math::Sin(mflapTimer) * Math::ToRadians(45.0f);
 
