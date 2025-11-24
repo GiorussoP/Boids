@@ -15,11 +15,13 @@ BirdActor::BirdActor(Scene *scene, BirdType type)
                             Vector3(0.75f, 2.0f, 0.75f),
                             Quaternion(Vector3::UnitX, -Math::PiOver2));
 
-  mLeftWing = new MeshComponent(this, *pyramidMesh, Vector3(-0.5f, 0.0f, 0.0f),
-                                Vector3(0.1f, 2.0f, 1.5f));
+  mLeftWing = new MeshComponent(this, *pyramidMesh, Vector3(-1.0f, 0.0f, 0.0f),
+                                Vector3(0.1f, 2.0f, 1.5f),
+                                Quaternion(Vector3::UnitZ, Math::PiOver2));
 
-  mRightWing = new MeshComponent(this, *pyramidMesh, Vector3(0.5f, 0.0f, 0.0f),
-                                 Vector3(0.1f, 2.0f, 1.5f));
+  mRightWing = new MeshComponent(this, *pyramidMesh, Vector3(1.0f, 0.0f, 0.0f),
+                                 Vector3(0.1f, 2.0f, 1.5f),
+                                 Quaternion(Vector3::UnitZ, -Math::PiOver2));
 
   mBeak = new MeshComponent(this, *pyramidMesh, Vector3(0.0f, 0.0f, 1.25f),
                             Vector3(0.5f, 0.5f, 0.5f),
@@ -75,9 +77,8 @@ void BirdActor::OnUpdate(float deltaTime) {
     Vector3 flockCenter = Vector3::Zero;
     int neighborCount = 0;
 
-    for (auto actor : mScene->GetActors()) {
-      BirdActor *otherBird = dynamic_cast<BirdActor *>(actor);
-      if (otherBird != nullptr && otherBird != this) {
+    for (auto otherBird : mScene->GetBirds()) {
+      if (otherBird != nullptr && otherBird != this && otherBird != leader) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();
         if (distSq < neighborRadius * neighborRadius) {
@@ -96,7 +97,8 @@ void BirdActor::OnUpdate(float deltaTime) {
       toFlockCenter.Normalize();
       Vector3 desiredToCenter = toFlockCenter;
       desiredVelocity =
-          (desiredToLeader + avgVelocity + desiredToCenter) * (1.0f / 3.0f);
+          (desiredToLeader + avgVelocity + 0.5f * desiredToCenter) *
+          (1.0f / 3.0f);
     } else {
       desiredVelocity = desiredToLeader;
     }
@@ -107,8 +109,7 @@ void BirdActor::OnUpdate(float deltaTime) {
     }
 
     // Avoid crowding
-    for (auto actor : mScene->GetActors()) {
-      BirdActor *otherBird = dynamic_cast<BirdActor *>(actor);
+    for (auto otherBird : mScene->GetBirds()) {
       if (otherBird != nullptr && otherBird != this) {
         Vector3 toOther = otherBird->GetPosition() - GetPosition();
         float distSq = toOther.LengthSq();

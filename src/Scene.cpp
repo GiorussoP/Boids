@@ -121,6 +121,7 @@ void Scene::InitializeActors() {
   mLeader->SetPosition(Vector3(60.0f, 350.0f, 0.0f));
   mLeader->GetComponent<RigidBodyComponent>()->SetVelocity(
       Vector3(0.0f, 0.0f, 20.0f));
+  mBirds.emplace_back(mLeader);
 }
 void Scene::SetCameraPos(Vector3 position) { mCameraPos = position; }
 
@@ -259,7 +260,7 @@ void Scene::ProcessInput() {
 
   if (Input::WasKeyPressed(SDL_SCANCODE_C)) {
     mCameraMode =
-        static_cast<CameraMode>((static_cast<int>(mCameraMode) + 1) % 4);
+        static_cast<CameraMode>((static_cast<int>(mCameraMode) + 1) % 5);
   }
 
   if (Input::WasKeyPressed(SDL_SCANCODE_ESCAPE)) {
@@ -311,7 +312,7 @@ void Scene::ProcessInput() {
     mBirds.emplace_back(bird);
   }
   if (Input::WasKeyPressed(SDL_SCANCODE_MINUS)) {
-    if (!mBirds.empty()) {
+    if (mBirds.size() > 1) {
       auto b = mBirds.back();
       mBirds.pop_back();
       RemoveActor(b);

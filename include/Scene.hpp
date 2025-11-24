@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-enum class CameraMode { Free, Fixed, FollowBoid, SeeBoid };
+enum class CameraMode { Free, Fixed, FollowBoid, SeeBoid, POV };
 
 class Scene {
 public:
@@ -25,6 +25,8 @@ public:
 
   std::vector<class Actor *> &GetActors() { return mActors; }
   class BirdActor *GetLeader() { return mLeader; }
+
+  std::vector<class BirdActor *> &GetBirds() { return mBirds; }
 
   // Renderer getter
   class Renderer *GetRenderer() { return mRenderer; }

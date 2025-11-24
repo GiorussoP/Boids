@@ -113,15 +113,32 @@ void CameraControllerActor::OnUpdate(float deltaTime) {
   case CameraMode::SeeBoid: {
     auto flockCenter = mScene->GetFlockCenter();
 
-    Vector3 cameraPos =
-        Vector3::Lerp(mScene->GetCameraPos(),
-                      flockCenter + Vector3(0.0f, 15.0f, 0.0f), 0.05f);
+    Vector3 cameraPos = Vector3::Lerp(
+        mScene->GetCameraPos(), flockCenter + Vector3(0.0f, 15.0f, 0.0f), 0.5f);
 
     mScene->SetCameraForward(Vector3::NegUnitY);
     mScene->SetCameraUp(
         Vector3::Lerp(mScene->GetCameraUp(),
                       Vector3::Normalize(mScene->GetFlockVelocity()), 0.05f));
     mScene->SetCameraPos(cameraPos);
+  } break;
+  case CameraMode::POV: {
+    auto birds = mScene->GetBirds();
+
+    if (birds.empty()) {
+      break;
+    }
+    SDL_Log("LALA");
+
+    BirdActor *lastBird = birds.back();
+    Vector3 birdPos = lastBird->GetPosition();
+    Quaternion birdRotation = lastBird->GetRotation();
+
+    Vector3 offset = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f),
+                                        birdRotation); // Adjust as needed
+    mScene->SetCameraPos(birdPos + offset);
+    mScene->SetCameraRotation(
+        Quaternion::Slerp(mScene->GetCameraRotation(), birdRotation, 0.05f));
   } break;
   default:
     break;
