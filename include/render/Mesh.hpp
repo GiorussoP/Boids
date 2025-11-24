@@ -14,12 +14,12 @@ struct Vertex {
   Vector2 texture;
 
   Vertex() = default;
-  
+
   Vertex(const Vector3 &pos, const Vector3 &norm)
       : position(pos), normal(norm) {}
 
   Vertex(const Vector3 &pos, const Vector3 &norm, const Vector2 &texture)
-        : position(pos), normal(norm), texture(texture) {}
+      : position(pos), normal(norm), texture(texture) {}
 };
 
 // Triangle
@@ -115,14 +115,14 @@ private:
   static MeshData GeneratePyramidData();
 };
 
-// Sphere mesh class (icosahedron)
+// Sun mesh class (icoSun)
 class SphereMesh : public Mesh {
 public:
-  SphereMesh();
+  SphereMesh(int subdivisions = 2);
   virtual ~SphereMesh() = default;
 
 private:
-  static MeshData GenerateIcosahedronData();
+  static MeshData GenerateIcoSunData(int subdivisions);
 };
 
 // Cone mesh class

@@ -106,7 +106,8 @@ void Mesh::Build(MeshData meshdata) {
                         (void *)(3 * sizeof(float)));
 
   glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)(6 * sizeof(float)));
   // Unbind VAO
   glBindVertexArray(0);
 
@@ -336,11 +337,13 @@ MeshData PyramidMesh::GeneratePyramidData() {
    tile4));
 */
 
-// ============== SphereMesh Class (Icosahedron) ==============
+// ============== SphereMesh Class (IcoSun) ==============
 
-SphereMesh::SphereMesh() { Build(GenerateIcosahedronData()); }
+SphereMesh::SphereMesh(int subdivisions) {
+  Build(GenerateIcoSunData(subdivisions));
+}
 
-MeshData SphereMesh::GenerateIcosahedronData() {
+MeshData SphereMesh::GenerateIcoSunData(int subdivisions) {
   MeshData data;
 
   // Golden ratio for icosahedron
@@ -348,8 +351,7 @@ MeshData SphereMesh::GenerateIcosahedronData() {
   const float a = 0.5f;
   const float b = a / phi;
 
-  // 12 vertices of an icosahedron (scaled to fit in unit sphere)
-  // Normalize to make it a unit sphere
+  // Initial 12 vertices of an icosahedron
   std::vector<Vector3> positions = {
       Vector3(-b, a, 0.0f),  // 0
       Vector3(b, a, 0.0f),   // 1
@@ -367,13 +369,13 @@ MeshData SphereMesh::GenerateIcosahedronData() {
       Vector3(-a, 0.0f, b)   // 11
   };
 
-  // Normalize all positions to make them lie on a unit sphere
+  // Normalize all positions to make them lie on a unit Sun
   for (auto &pos : positions) {
     pos.Normalize();
     pos = pos * 0.5f; // Scale to fit in [-0.5, 0.5] bounds
   }
 
-  // 20 triangular faces of an icosahedron
+  // Initial 20 triangular faces of an icosahedron
   std::vector<std::array<unsigned int, 3>> faces = {// 5 faces around point 0
                                                     {{0, 11, 5}},
                                                     {{0, 5, 1}},
@@ -401,6 +403,41 @@ MeshData SphereMesh::GenerateIcosahedronData() {
                                                     {{6, 2, 10}},
                                                     {{8, 6, 7}},
                                                     {{9, 8, 1}}};
+
+  // Subdivide the icosahedron
+  for (int level = 0; level < subdivisions; ++level) {
+    std::vector<std::array<unsigned int, 3>> newFaces;
+    std::map<std::pair<unsigned int, unsigned int>, unsigned int> midpoints;
+
+    auto getMidpoint = [&](unsigned int a, unsigned int b) {
+      std::pair<unsigned int, unsigned int> key = {std::min(a, b),
+                                                   std::max(a, b)};
+      if (midpoints.find(key) != midpoints.end()) {
+        return midpoints[key];
+      }
+      Vector3 mid = (positions[a] + positions[b]) * 0.5f;
+      mid.Normalize();
+      mid = mid * 0.5f;
+      unsigned int index = positions.size();
+      positions.push_back(mid);
+      midpoints[key] = index;
+      return index;
+    };
+
+    for (const auto &face : faces) {
+      unsigned int a = face[0], b = face[1], c = face[2];
+      unsigned int ab = getMidpoint(a, b);
+      unsigned int bc = getMidpoint(b, c);
+      unsigned int ca = getMidpoint(c, a);
+
+      newFaces.push_back({a, ab, ca});
+      newFaces.push_back({b, bc, ab});
+      newFaces.push_back({c, ca, bc});
+      newFaces.push_back({ab, bc, ca});
+    }
+
+    faces = newFaces;
+  }
 
   // Calculate vertex normals by averaging face normals
   std::vector<Vector3> normals(positions.size(), Vector3::Zero);

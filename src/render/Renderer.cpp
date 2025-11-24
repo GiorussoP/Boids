@@ -11,7 +11,8 @@
 
 Renderer::Renderer()
     : mViewMatrix(Matrix4::Identity), mProjectionMatrix(Matrix4::Identity),
-      mMeshShader(nullptr), mShadowShader(nullptr), mGroundMesh(nullptr),
+      mMeshShader(nullptr), mShadowShader(nullptr), mSunShader(nullptr),
+      mGroundMesh(nullptr),
       lightDir(Vector3::Normalize(Vector3(-1.5f, -0.5f, 0.5f))), mShadowFBO(0),
       mShadowMap(0), mDownsampleFactor(8) {}
 
@@ -25,6 +26,10 @@ Renderer::~Renderer() {
   if (mShadowShader) {
     delete mShadowShader;
     mShadowShader = nullptr;
+  }
+  if (mSunShader) {
+    delete mSunShader;
+    mSunShader = nullptr;
   }
 
   // Delete shadow map
@@ -107,6 +112,9 @@ void Renderer::Shutdown() {
   }
   if (mShadowShader) {
     mShadowShader->Unload();
+  }
+  if (mSunShader) {
+    mSunShader->Unload();
   }
 
   // Delete all cached meshes
@@ -278,6 +286,15 @@ bool Renderer::LoadShaders() {
     return false;
   }
 
+  // Create Sun shader
+  mSunShader = new Shader();
+  if (!mSunShader->Load("./assets/shaders/Sun.vert",
+                        "./assets/shaders/Sun.frag")) {
+    delete mSunShader;
+    mSunShader = nullptr;
+    return false;
+  }
+
   return true;
 }
 
@@ -296,7 +313,7 @@ Mesh *Renderer::LoadMesh(const std::string &meshName) {
     mesh = new PyramidMesh();
   } else if (meshName == "plane") {
     mesh = new PlaneMesh();
-  } else if (meshName == "sphere") {
+  } else if (meshName == "Sun") {
     mesh = new SphereMesh();
   } else if (meshName == "cone") {
     mesh = new ConeMesh();
@@ -439,6 +456,19 @@ void Renderer::ActivateShadowShader() {
   mShadowShader->SetActive();
 }
 
+void Renderer::ActivateSunShader() {
+  if (!mSunShader) {
+    std::cerr << "Sun shader not loaded" << std::endl;
+    return;
+  }
+
+  mSunShader->SetActive();
+
+  // Set view-projection matrix
+  Matrix4 viewProj = mViewMatrix * mProjectionMatrix;
+  mSunShader->SetMatrixUniform("uViewProjection", viewProj);
+}
+
 void Renderer::ActivateMeshShader() {
   if (!mMeshShader) {
     std::cerr << "Mesh shader not loaded" << std::endl;
@@ -547,6 +577,33 @@ void Renderer::DrawSingleMesh(Mesh *mesh, const Vector3 &position,
 
   // Re-enable depth test
   glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::DrawSun(const Vector3 &position, const Vector3 &scale,
+                       const Vector3 &color) {
+  Mesh *SphereMesh = LoadMesh("Sun");
+  if (!SphereMesh || !mSunShader) {
+    return;
+  }
+
+  // Activate Sun shader
+  ActivateSunShader();
+
+  // Set color
+  mSunShader->SetVectorUniform("uColor", color);
+
+  // Build model matrix
+  Matrix4 model =
+      Matrix4::CreateScale(scale) * Matrix4::CreateTranslation(position);
+
+  mSunShader->SetMatrixUniform("uModel", model);
+
+  // Set active mesh
+  SphereMesh->SetActive();
+
+  // Draw
+  glDrawElements(GL_TRIANGLES, SphereMesh->GetNumIndices(), GL_UNSIGNED_INT,
+                 nullptr);
 }
 
 float Renderer::GetHeightAt(float x, float z) {

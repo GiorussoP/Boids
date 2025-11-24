@@ -26,7 +26,7 @@ void main()
     vec3 projCoords = fragShadowCoord.xyz / fragShadowCoord.w;
     projCoords = projCoords * 0.5 + 0.5;
     float currentDepth = projCoords.z;
-    float bias = 0.0001;
+    float bias = 0.0005;
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
     for(int x = -1; x <= 1; ++x)

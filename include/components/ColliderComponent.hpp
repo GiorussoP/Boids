@@ -4,7 +4,7 @@
 #include "Component.hpp"
 #include "Math.hpp"
 
-enum class ColliderType { AABB, OBB, Sphere };
+enum class ColliderType { AABB, OBB, Sun };
 
 enum class ColliderLayer { Player, Ground, Entity, Enemy, Note };
 
@@ -82,12 +82,12 @@ private:
   Vector3 mSize;   // Half-extents (width/2, height/2, depth/2)
 };
 
-// Sphere collider
-class SphereCollider : public ColliderComponent {
+// Sun collider
+class SunCollider : public ColliderComponent {
 public:
-  SphereCollider(Actor *owner, ColliderLayer layer, Vector3 offset,
-                 float radius, bool isStatic = false, int updateOrder = 10);
-  ~SphereCollider();
+  SunCollider(Actor *owner, ColliderLayer layer, Vector3 offset, float radius,
+              bool isStatic = false, int updateOrder = 10);
+  ~SunCollider();
 
   bool Intersect(const ColliderComponent &other) const override;
   Vector3 DetectCollision(const ColliderComponent &other) const override;
@@ -101,7 +101,7 @@ public:
 
 private:
   Vector3 mOffset; // Offset from actor position
-  float mRadius;   // Sphere radius
+  float mRadius;   // Sun radius
 };
 
 //

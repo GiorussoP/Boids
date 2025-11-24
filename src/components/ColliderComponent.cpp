@@ -63,23 +63,23 @@ bool AABBCollider::Intersect(const ColliderComponent &other) const {
                      bMin.y > aMax.y || aMin.z > bMax.z || bMin.z > aMax.z;
 
     return !noOverlap;
-  } else if (other.GetType() == ColliderType::Sphere) {
-    const SphereCollider &sphere = static_cast<const SphereCollider &>(other);
+  } else if (other.GetType() == ColliderType::Sun) {
+    const SunCollider &Sun = static_cast<const SunCollider &>(other);
 
-    // Find the closest point on the AABB to the sphere center
-    Vector3 sphereCenter = sphere.GetCenter();
+    // Find the closest point on the AABB to the Sun center
+    Vector3 SunCenter = Sun.GetCenter();
     Vector3 closestPoint;
 
     Vector3 aMin = GetMin();
     Vector3 aMax = GetMax();
 
-    closestPoint.x = Math::Max(aMin.x, Math::Min(sphereCenter.x, aMax.x));
-    closestPoint.y = Math::Max(aMin.y, Math::Min(sphereCenter.y, aMax.y));
-    closestPoint.z = Math::Max(aMin.z, Math::Min(sphereCenter.z, aMax.z));
+    closestPoint.x = Math::Max(aMin.x, Math::Min(SunCenter.x, aMax.x));
+    closestPoint.y = Math::Max(aMin.y, Math::Min(SunCenter.y, aMax.y));
+    closestPoint.z = Math::Max(aMin.z, Math::Min(SunCenter.z, aMax.z));
 
-    // Check if the distance is less than the sphere radius
-    float distSq = (closestPoint - sphereCenter).LengthSq();
-    float radius = sphere.GetRadius();
+    // Check if the distance is less than the Sun radius
+    float distSq = (closestPoint - SunCenter).LengthSq();
+    float radius = Sun.GetRadius();
 
     return distSq <= (radius * radius);
   } else if (other.GetType() == ColliderType::OBB) {
@@ -133,48 +133,48 @@ Vector3 AABBCollider::DetectCollision(const ColliderComponent &other) const {
     }
 
     return penetration;
-  } else if (other.GetType() == ColliderType::Sphere) {
-    const SphereCollider &sphere = static_cast<const SphereCollider &>(other);
+  } else if (other.GetType() == ColliderType::Sun) {
+    const SunCollider &Sun = static_cast<const SunCollider &>(other);
 
-    Vector3 sphereCenter = sphere.GetCenter();
+    Vector3 SunCenter = Sun.GetCenter();
     Vector3 closestPoint;
 
     Vector3 aMin = GetMin();
     Vector3 aMax = GetMax();
 
-    closestPoint.x = Math::Max(aMin.x, Math::Min(sphereCenter.x, aMax.x));
-    closestPoint.y = Math::Max(aMin.y, Math::Min(sphereCenter.y, aMax.y));
-    closestPoint.z = Math::Max(aMin.z, Math::Min(sphereCenter.z, aMax.z));
+    closestPoint.x = Math::Max(aMin.x, Math::Min(SunCenter.x, aMax.x));
+    closestPoint.y = Math::Max(aMin.y, Math::Min(SunCenter.y, aMax.y));
+    closestPoint.z = Math::Max(aMin.z, Math::Min(SunCenter.z, aMax.z));
 
-    Vector3 direction = sphereCenter - closestPoint;
+    Vector3 direction = SunCenter - closestPoint;
     float dist = direction.Length();
 
     if (dist > 0.0f) {
       direction.Normalize();
-      float penetrationDepth = sphere.GetRadius() - dist;
-      // Return penetration for AABB (negate to push AABB away from sphere)
+      float penetrationDepth = Sun.GetRadius() - dist;
+      // Return penetration for AABB (negate to push AABB away from Sun)
       return direction * penetrationDepth * -1.0f;
     }
 
-    // Sphere center is inside the box - push out on smallest axis
+    // Sun center is inside the box - push out on smallest axis
     Vector3 center = (aMin + aMax) * 0.5f;
-    Vector3 diff = sphereCenter - center;
+    Vector3 diff = SunCenter - center;
     Vector3 halfSize = (aMax - aMin) * 0.5f;
 
     // Calculate penetration depth on each axis
-    float dx = halfSize.x + sphere.GetRadius() - Math::Abs(diff.x);
-    float dy = halfSize.y + sphere.GetRadius() - Math::Abs(diff.y);
-    float dz = halfSize.z + sphere.GetRadius() - Math::Abs(diff.z);
+    float dx = halfSize.x + Sun.GetRadius() - Math::Abs(diff.x);
+    float dy = halfSize.y + Sun.GetRadius() - Math::Abs(diff.y);
+    float dz = halfSize.z + Sun.GetRadius() - Math::Abs(diff.z);
 
     // Push out on the axis with smallest penetration
     if (dx < dy && dx < dz) {
-      // Push on X axis - negate to push AABB away from sphere
+      // Push on X axis - negate to push AABB away from Sun
       return Vector3(diff.x >= 0.0f ? -dx : dx, 0.0f, 0.0f);
     } else if (dy < dz) {
-      // Push on Y axis - negate to push AABB away from sphere
+      // Push on Y axis - negate to push AABB away from Sun
       return Vector3(0.0f, diff.y >= 0.0f ? -dy : dy, 0.0f);
     } else {
-      // Push on Z axis - negate to push AABB away from sphere
+      // Push on Z axis - negate to push AABB away from Sun
       return Vector3(0.0f, 0.0f, diff.z >= 0.0f ? -dz : dz);
     }
   } else if (other.GetType() == ColliderType::OBB) {
@@ -404,35 +404,35 @@ bool OBBCollider::Intersect(const ColliderComponent &other) const {
     }
 
     return true;
-  } else if (other.GetType() == ColliderType::Sphere) {
-    const SphereCollider &sphere = static_cast<const SphereCollider &>(other);
+  } else if (other.GetType() == ColliderType::Sun) {
+    const SunCollider &Sun = static_cast<const SunCollider &>(other);
 
     Vector3 obbCenter = GetCenter();
-    Vector3 sphereCenter = sphere.GetCenter();
+    Vector3 SunCenter = Sun.GetCenter();
 
-    // Transform sphere center into OBB's local space
-    Vector3 diff = sphereCenter - obbCenter;
+    // Transform Sun center into OBB's local space
+    Vector3 diff = SunCenter - obbCenter;
     Quaternion invRot = mOwner->GetRotation();
     invRot.Conjugate();
-    Vector3 localSphereCenter = Vector3::Transform(diff, invRot);
+    Vector3 localSunCenter = Vector3::Transform(diff, invRot);
 
     // Apply owner's scale to OBB extents
     Vector3 scale = mOwner->GetScale();
     Vector3 scaledSize =
         Vector3(mSize.x * scale.x, mSize.y * scale.y, mSize.z * scale.z);
 
-    // Find closest point on OBB (in local space) to sphere center
+    // Find closest point on OBB (in local space) to Sun center
     Vector3 closestLocal;
     closestLocal.x =
-        Math::Max(-scaledSize.x, Math::Min(localSphereCenter.x, scaledSize.x));
+        Math::Max(-scaledSize.x, Math::Min(localSunCenter.x, scaledSize.x));
     closestLocal.y =
-        Math::Max(-scaledSize.y, Math::Min(localSphereCenter.y, scaledSize.y));
+        Math::Max(-scaledSize.y, Math::Min(localSunCenter.y, scaledSize.y));
     closestLocal.z =
-        Math::Max(-scaledSize.z, Math::Min(localSphereCenter.z, scaledSize.z));
+        Math::Max(-scaledSize.z, Math::Min(localSunCenter.z, scaledSize.z));
 
-    // Distance from sphere center to closest point on OBB
-    float distSq = (localSphereCenter - closestLocal).LengthSq();
-    float radius = sphere.GetRadius();
+    // Distance from Sun center to closest point on OBB
+    float distSq = (localSunCenter - closestLocal).LengthSq();
+    float radius = Sun.GetRadius();
 
     return distSq <= (radius * radius);
   }
@@ -685,47 +685,46 @@ Vector3 OBBCollider::DetectCollision(const ColliderComponent &other) const {
 
     // Fallback (should not reach here if Intersect returned true)
     return Vector3(0.0f, 0.01f, 0.0f);
-  } else if (other.GetType() == ColliderType::Sphere) {
-    // OBB-Sphere: find closest point on OBB to sphere center
-    const SphereCollider &sphere = static_cast<const SphereCollider &>(other);
-    Vector3 sphereCenter = sphere.GetCenter();
+  } else if (other.GetType() == ColliderType::Sun) {
+    // OBB-Sun: find closest point on OBB to Sun center
+    const SunCollider &Sun = static_cast<const SunCollider &>(other);
+    Vector3 SunCenter = Sun.GetCenter();
 
-    // Transform sphere center into OBB's local space
-    Vector3 diff = sphereCenter - obbCenter;
-    Vector3 localSphereCenter = Vector3::Transform(diff, invRot);
+    // Transform Sun center into OBB's local space
+    Vector3 diff = SunCenter - obbCenter;
+    Vector3 localSunCenter = Vector3::Transform(diff, invRot);
 
     // Apply owner's scale to OBB extents
     Vector3 scale = mOwner->GetScale();
     Vector3 scaledSize =
         Vector3(mSize.x * scale.x, mSize.y * scale.y, mSize.z * scale.z);
 
-    // Find closest point on OBB to sphere center (in local space)
+    // Find closest point on OBB to Sun center (in local space)
     Vector3 closestLocal;
     closestLocal.x =
-        Math::Max(-scaledSize.x, Math::Min(localSphereCenter.x, scaledSize.x));
+        Math::Max(-scaledSize.x, Math::Min(localSunCenter.x, scaledSize.x));
     closestLocal.y =
-        Math::Max(-scaledSize.y, Math::Min(localSphereCenter.y, scaledSize.y));
+        Math::Max(-scaledSize.y, Math::Min(localSunCenter.y, scaledSize.y));
     closestLocal.z =
-        Math::Max(-scaledSize.z, Math::Min(localSphereCenter.z, scaledSize.z));
+        Math::Max(-scaledSize.z, Math::Min(localSunCenter.z, scaledSize.z));
 
     // Calculate penetration in local space (negate to push OBB away from
-    // sphere)
-    Vector3 localDirection = localSphereCenter - closestLocal;
+    // Sun)
+    Vector3 localDirection = localSunCenter - closestLocal;
     float dist = localDirection.Length();
 
     if (dist > 0.0f) {
       localDirection.Normalize();
-      float penetrationDepth = sphere.GetRadius() - dist;
-      // Negate direction to push OBB away from sphere
+      float penetrationDepth = Sun.GetRadius() - dist;
+      // Negate direction to push OBB away from Sun
       Vector3 localPenetration = localDirection * penetrationDepth * -1.0f;
 
       // Transform back to world space
       return Vector3::Transform(localPenetration, rotation);
     }
 
-    // Sphere center is exactly on OBB surface - push OBB away along negative Y
-    return Vector3::Transform(Vector3(0.0f, -sphere.GetRadius(), 0.0f),
-                              rotation);
+    // Sun center is exactly on OBB surface - push OBB away along negative Y
+    return Vector3::Transform(Vector3(0.0f, -Sun.GetRadius(), 0.0f), rotation);
   }
 
   return Vector3::Zero;
@@ -751,19 +750,17 @@ void OBBCollider::DebugDraw(class Renderer *renderer) {
 }
 
 // ============================================================================
-// SphereCollider
+// SunCollider
 // ============================================================================
 
-SphereCollider::SphereCollider(Actor *owner, ColliderLayer layer,
-                               Vector3 offset, float radius, bool isStatic,
-                               int updateOrder)
-    : ColliderComponent(owner, layer, ColliderType::Sphere, isStatic,
-                        updateOrder),
+SunCollider::SunCollider(Actor *owner, ColliderLayer layer, Vector3 offset,
+                         float radius, bool isStatic, int updateOrder)
+    : ColliderComponent(owner, layer, ColliderType::Sun, isStatic, updateOrder),
       mOffset(offset), mRadius(radius) {}
 
-SphereCollider::~SphereCollider() {}
+SunCollider::~SunCollider() {}
 
-Vector3 SphereCollider::GetCenter() const {
+Vector3 SunCollider::GetCenter() const {
   // Apply scale to offset and transform by rotation
   Vector3 scale = mOwner->GetScale();
   Vector3 scaledOffset =
@@ -773,7 +770,7 @@ Vector3 SphereCollider::GetCenter() const {
   return mOwner->GetPosition() + rotatedOffset;
 }
 
-float SphereCollider::GetRadius() const {
+float SunCollider::GetRadius() const {
   // Apply scale to radius (use max absolute scale component for uniform
   // scaling)
   Vector3 scale = mOwner->GetScale();
@@ -782,16 +779,15 @@ float SphereCollider::GetRadius() const {
   return mRadius * maxScale;
 }
 
-bool SphereCollider::Intersect(const ColliderComponent &other) const {
-  if (other.GetType() == ColliderType::Sphere) {
-    const SphereCollider &otherSphere =
-        static_cast<const SphereCollider &>(other);
+bool SunCollider::Intersect(const ColliderComponent &other) const {
+  if (other.GetType() == ColliderType::Sun) {
+    const SunCollider &otherSun = static_cast<const SunCollider &>(other);
 
     Vector3 centerA = GetCenter();
-    Vector3 centerB = otherSphere.GetCenter();
+    Vector3 centerB = otherSun.GetCenter();
 
     // GetRadius() already applies scale
-    float radiusSum = GetRadius() + otherSphere.GetRadius();
+    float radiusSum = GetRadius() + otherSun.GetRadius();
     float distSq = (centerA - centerB).LengthSq();
 
     return distSq <= (radiusSum * radiusSum);
@@ -806,23 +802,22 @@ bool SphereCollider::Intersect(const ColliderComponent &other) const {
   return false;
 }
 
-Vector3 SphereCollider::DetectCollision(const ColliderComponent &other) const {
+Vector3 SunCollider::DetectCollision(const ColliderComponent &other) const {
   if (!Intersect(other)) {
     return Vector3::Zero;
   }
 
-  if (other.GetType() == ColliderType::Sphere) {
-    const SphereCollider &otherSphere =
-        static_cast<const SphereCollider &>(other);
+  if (other.GetType() == ColliderType::Sun) {
+    const SunCollider &otherSun = static_cast<const SunCollider &>(other);
 
     Vector3 centerA = GetCenter();
-    Vector3 centerB = otherSphere.GetCenter();
+    Vector3 centerB = otherSun.GetCenter();
 
     Vector3 direction = centerA - centerB;
     float dist = direction.Length();
 
     // GetRadius() already applies scale
-    float radiusSum = GetRadius() + otherSphere.GetRadius();
+    float radiusSum = GetRadius() + otherSun.GetRadius();
 
     if (dist > 0.0f) {
       direction.Normalize();
@@ -833,8 +828,8 @@ Vector3 SphereCollider::DetectCollision(const ColliderComponent &other) const {
     // Centers are at same position - push up by default
     return Vector3(0.0f, radiusSum, 0.0f);
   } else if (other.GetType() == ColliderType::AABB) {
-    // AABB returns penetration for itself (to push AABB away from sphere)
-    // Negate it to get penetration for sphere (to push sphere away from AABB)
+    // AABB returns penetration for itself (to push AABB away from Sun)
+    // Negate it to get penetration for Sun (to push Sun away from AABB)
     return other.DetectCollision(*this) * -1.0f;
   } else if (other.GetType() == ColliderType::OBB) {
     // OBB handles this, but we need to negate the result
@@ -844,10 +839,10 @@ Vector3 SphereCollider::DetectCollision(const ColliderComponent &other) const {
   return Vector3::Zero;
 }
 
-void SphereCollider::DebugDraw(Renderer *renderer) {
-  // Get the sphere mesh from the renderer
-  Mesh *sphereMesh = renderer->LoadMesh("sphere");
-  if (!sphereMesh) {
+void SunCollider::DebugDraw(Renderer *renderer) {
+  // Get the Sun mesh from the renderer
+  Mesh *SphereMesh = renderer->LoadMesh("Sun");
+  if (!SphereMesh) {
     return;
   }
 
@@ -857,6 +852,6 @@ void SphereCollider::DebugDraw(Renderer *renderer) {
       mRadius * 2.0f; // mRadius is radius, so multiply by 2 for diameter
   Vector3 scale(diameter, diameter, diameter);
 
-  // Draw sphere (no rotation needed for a sphere)
-  renderer->DrawSingleMesh(sphereMesh, center, scale);
+  // Draw Sun (no rotation needed for a Sun)
+  renderer->DrawSingleMesh(SphereMesh, center, scale);
 }

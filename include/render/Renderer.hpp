@@ -34,10 +34,14 @@ public:
   void DrawSingleMesh(Mesh *mesh, const Vector3 &position, const Vector3 &scale,
                       const Quaternion &rotation = Quaternion::Identity);
 
+  void DrawSun(const Vector3 &position, const Vector3 &scale,
+               const Vector3 &color);
+
   // Batch rendering - set frame-level uniforms once before drawing multiple
 
   void ActivateMeshShader();
   void ActivateShadowShader();
+  void ActivateSunShader();
 
   void SetViewMatrix(const Matrix4 &view);
   void SetProjectionMatrix(const Matrix4 &projection);
@@ -54,6 +58,8 @@ public:
   // Shadow rendering
   void RenderShadows(const std::vector<MeshComponent *> &meshes);
 
+  Vector3 &GetLightDir() { return lightDir; }
+
 private:
   bool LoadShaders();
 
@@ -67,6 +73,7 @@ private:
   // Shaders
   Shader *mMeshShader;
   Shader *mShadowShader;
+  Shader *mSunShader;
 
   // Meshes
   std::unordered_map<std::string, Mesh *> mMeshCache;

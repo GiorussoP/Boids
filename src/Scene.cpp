@@ -472,6 +472,10 @@ void Scene::GenerateOutput() {
   mRenderer->ActivateMeshShader();
   mRenderer->DrawMeshesInstanced(activeMeshes, mode);
 
+  // Draw Sun
+  mRenderer->DrawSun(mRenderer->GetLightDir() * -1000.0f, Vector3(50.0f),
+                     Vector3(1.0f, 1.0f, 0.9f));
+
   /*
   if (mIsDebugging) {
     for (auto actor : mActors) {
