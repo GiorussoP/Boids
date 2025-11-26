@@ -26,6 +26,10 @@ private:
   MeshComponent *mBeak;
   MeshComponent *mTail;
 
+  MeshComponent *mFishHead;
+  MeshComponent *mFishBody;
+  MeshComponent *mFishTail;
+
   BirdType mType;
 
   RigidBodyComponent *mRigidBody;

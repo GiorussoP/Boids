@@ -32,6 +32,36 @@ BirdActor::BirdActor(Scene *scene, BirdType type)
                             Vector3(1.5f, 0.5f, 0.2f),
                             Quaternion(Vector3::UnitX, Math::PiOver2));
 
+  mFishHead = new MeshComponent(
+      this, *pyramidMesh, Vector3(1.25f, -0.5f, 0.0f),
+      Vector3(0.5f, 0.5f, 0.2f),
+      Quaternion::Concatenate(
+          Quaternion::Concatenate(Quaternion(Vector3::UnitX, Math::PiOver2),
+                                  Quaternion(Vector3::UnitY, Math::PiOver2)),
+          Quaternion(Vector3::UnitX, Math::PiOver2)));
+  mFishHead->SetColor(Color::Cyan);
+  mFishHead->SetIsVisible(false);
+
+  mFishBody = new MeshComponent(
+      this, *pyramidMesh, Vector3(0.0f, -0.5f, 0.0f), Vector3(0.5f, 2.0f, 0.2f),
+      Quaternion::Concatenate(
+          Quaternion::Concatenate(Quaternion(Vector3::UnitX, -Math::PiOver2),
+                                  Quaternion(Vector3::UnitY, Math::PiOver2)),
+          Quaternion(Vector3::UnitX, Math::PiOver2)));
+
+  mFishBody->SetColor(Color::Cyan);
+  mFishBody->SetIsVisible(false);
+
+  mFishTail = new MeshComponent(
+      this, *pyramidMesh, Vector3(-1.25f, -0.5f, 0.0f),
+      Vector3(0.5f, 0.5f, 0.2f),
+      Quaternion::Concatenate(
+          Quaternion::Concatenate(Quaternion(Vector3::UnitX, Math::PiOver2),
+                                  Quaternion(Vector3::UnitY, Math::PiOver2)),
+          Quaternion(Vector3::UnitX, Math::PiOver2)));
+  mFishTail->SetColor(Color::Cyan);
+  mFishTail->SetIsVisible(false);
+
   Vector3 color = (type == Leader) ? Color::Yellow : Color::White;
   mBody->SetColor(color);
   mLeftWing->SetColor(color);
@@ -206,5 +236,12 @@ void BirdActor::OnUpdate(float deltaTime) {
         Quaternion::Concatenate(Quaternion(Vector3::UnitZ, -Math::PiOver2),
                                 Quaternion(Vector3::UnitZ, turnAmmount)));
     mRightWing->SetOffset(Vector3(1.0f, Math::Sin(turnAmmount), 0.0f));
+  }
+
+  // Fish
+  if (mPosition.y < 220.0f) {
+    mFishBody->SetIsVisible(true);
+    mFishHead->SetIsVisible(true);
+    mFishTail->SetIsVisible(true);
   }
 }
